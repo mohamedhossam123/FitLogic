@@ -2,10 +2,12 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using MyApiProject.Services;
 
 
 var builder = WebApplication.CreateBuilder(args);
-
+builder.WebHost.UseUrls("https://localhost:5001");
+builder.Services.AddScoped<ICaloriesService, CaloriesService>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddOpenApi();
 builder.Services.AddSwaggerGen();
