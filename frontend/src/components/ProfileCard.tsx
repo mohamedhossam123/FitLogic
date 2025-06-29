@@ -176,7 +176,6 @@ const ProfileCardComponent: React.FC<ProfileCardProps> = ({
               )}
             </div>
           )}
-
     
           {/* User Info (Handle & Contact Button) */}
           {showUserInfo && (
