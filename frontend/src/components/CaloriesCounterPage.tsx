@@ -1,6 +1,8 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { z, ZodIssue } from 'zod';
 
+import { motion } from 'framer-motion';
+
 function cn(...classes: (string | undefined | null | false)[]): string {
   return classes.filter(Boolean).join(' ');
 }
@@ -308,7 +310,7 @@ export default function CaloriesCounterPage() {
     setErrors({});
     const validData = result.data;
     try {
-      setIsLoading(true); // Start loading
+      setIsLoading(true); 
       const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
 
       if (!backendUrl) {
@@ -383,286 +385,256 @@ export default function CaloriesCounterPage() {
   };
 
   return (
-    <>
-      <style jsx>{`
-        @keyframes float {
-          0%, 100% { transform: translateY(0px) rotate(0deg); }
-          50% { transform: translateY(-10px) rotate(180deg); }
-        }
-        @keyframes slideDown {
-          from { opacity: 0; transform: translateY(-10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.5; }
-        }
-        @keyframes shimmer {
-          0% { background-position: -200% 0; }
-          100% { background-position: 200% 0; }
-        }
-        .animate-float {
-          animation: float 3s ease-in-out infinite;
-        }
-        .animate-slideDown {
-          animation: slideDown 0.3s ease-out;
-        }
-        .animate-pulse {
-          animation: pulse 2s infinite;
-        }
-        .animate-shimmer {
-          background: linear-gradient(90deg, transparent, rgba(168, 85, 247, 0.4), transparent);
-          background-size: 200% 100%;
-          animation: shimmer 2s infinite;
-        }
-      `}</style>
-      
-      <div className="bg-[#070808] text-white font-inter w-full min-h-screen antialiased flex flex-col items-center justify-center pt-[70px] py-10 px-4 relative overflow-hidden">
-        <FloatingElements />
+    <motion.div
+      initial={{ opacity: 0, y: 20 }} 
+      animate={{ opacity: 1, y: 0 }}  
+      transition={{ duration: 0.8, ease: "easeOut" }} 
+      className="bg-[#070808] text-black font-inter w-full min-h-screen antialiased flex flex-col items-center justify-center pt-[70px] py-10 px-4 relative overflow-hidden"
+    >
+      <FloatingElements />
 
-        <section
-          id="home"
-          className="relative h-[60vh] md:h-[70vh] w-full mb-12 overflow-hidden"
-        >
-          <img
-            src="CaloriesInterFace.png"
-            alt="Calories Background"
-            className="absolute inset-0 w-full h-full object-contain object-center z-0"
-          />
+      <section
+        id="home"
+        className="relative h-[60vh] md:h-[70vh] w-full mb-12 overflow-hidden"
+      >
+        <img
+          src="CaloriesInterFace.png" 
+          alt="Calories Background"
+          className="absolute inset-0 w-full h-full object-contain object-center z-0"
+        />
 
-          <div className="relative z-10 flex flex-col justify-center items-center h-full text-center px-6">
-            
-            <h1 className="text-5xl md:text-7xl lg:text-8xl leading-tight font-libre-baskerville font-bold text-white mb-4 animate-pulse">
-              Calories Counter
-            </h1>
-            <p className="font-courier-prime font-normal text-lg md:text-xl text-gray-300 max-w-2xl mx-auto opacity-90">
-              Fuel your ambition. Calculate your daily calorie needs to perfectly match your fitness goals.
-            </p>
-            <div className="mb-6 animate-bounce">
-              <FireIcon className="w-16 h-16 text-purple-400 mx-auto" />
-            </div>
+        <div className="relative z-10 flex flex-col justify-center items-center h-full text-center px-6">
+          
+          <h1 className="text-5xl md:text-7xl lg:text-8xl leading-tight font-libre-baskerville font-bold text-white mb-4 animate-pulse">
+            Calories Counter
+          </h1>
+          <p className="font-courier-prime font-normal text-lg md:text-xl text-gray-300 max-w-2xl mx-auto opacity-90">
+            Fuel your ambition. Calculate your daily calorie needs to perfectly match your fitness goals.
+          </p>
+          <div className="mb-6 animate-bounce">
+            <FireIcon className="w-16 h-16 text-purple-400 mx-auto" />
           </div>
-        </section>
+        </div>
+      </section>
 
 
-        <main id="calorie-calc" className="relative z-20 -mt-[15vh] md:-mt-[20vh] w-full max-w-4xl">
-          <Card className="mx-auto border-purple-500/30 shadow-2xl shadow-purple-900/40 hover:shadow-purple-900/60 transition-all duration-500">
-            <CardContent>
-              <form onSubmit={handleCalculateCalories} className="space-y-8">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-8">
-                  <FormSelect
-                    label="Gender"
-                    name="gender"
-                    value={formData.gender}
-                    onChange={handleInputChange}
-                    error={errors.gender}
-                    icon={<PersonIcon />}
-                  >
-                    <option value="Male">Male</option>
-                    <option value="Female">Female</option>
-                  </FormSelect>
-                  
-                  <FormInput
-                    label="Age"
-                    name="age"
-                    type="number"
-                    placeholder="e.g., 25"
-                    value={formData.age || ''}
-                    onChange={handleInputChange}
-                    error={errors.age}
-                    icon={<CalendarIcon />}
-                  />
-                  
-                  <FormInput
-                    label="Height (cm)"
-                    name="height"
-                    type="number"
-                    placeholder="e.g., 180"
-                    value={formData.height || ''}
-                    onChange={handleInputChange}
-                    error={errors.height}
-                    icon={<RulerIcon />}
-                  />
-                  
-                  <FormInput
-                    label="Weight (kg)"
-                    name="weight"
-                    type="number"
-                    placeholder="e.g., 75"
-                    value={formData.weight || ''}
-                    onChange={handleInputChange}
-                    error={errors.weight}
-                    icon={<ScaleIcon />}
-                  />
-                  
-                  <FormSelect
-                    label="Activity Level"
-                    name="activityLevel"
-                    value={formData.activityLevel}
-                    onChange={handleInputChange}
-                    error={errors.activityLevel}
-                    icon={<ActivityIcon />}
-                  >
-                    <option value="sedentary">Sedentary (little or no exercise)</option>
-                    <option value="lightly active">Lightly Active (1-3 days/week)</option>
-                    <option value="moderately active">Moderately Active (3-5 days/week)</option>
-                    <option value="very active">Very Active (6-7 days/week)</option>
-                    <option value="extra active">Extra Active (daily hard exercise/physical job)</option>
-                  </FormSelect>
-                  
-                  <FormSelect
-                    label="Your Goal"
-                    name="goal"
-                    value={formData.goal}
-                    onChange={handleInputChange}
-                    error={errors.goal}
-                    icon={<TargetIcon />}
-                  >
-                    <option value="loseweight">Lose Weight</option>
-                    <option value="maintainweight">Maintain Weight</option>
-                    <option value="gainweight">Gain Weight</option>
-                    <option value="gainmuscle">Gain Muscle</option>
-                  </FormSelect>
+      <main id="calorie-calc" className="relative z-20 -mt-[15vh] md:-mt-[20vh] w-full max-w-4xl">
+        <Card className="mx-auto border-purple-500/30 shadow-2xl shadow-purple-900/40 hover:shadow-purple-900/60 transition-all duration-500">
+          <CardContent>
+            <form onSubmit={handleCalculateCalories} className="space-y-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-8">
+                <FormSelect
+                  label="Gender"
+                  name="gender"
+                  value={formData.gender}
+                  onChange={handleInputChange}
+                  error={errors.gender}
+                  icon={<PersonIcon />}
+                >
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                </FormSelect>
+                
+                <FormInput
+                  label="Age"
+                  name="age"
+                  type="number"
+                  placeholder="e.g., 25"
+                  value={formData.age || ''}
+                  onChange={handleInputChange}
+                  error={errors.age}
+                  icon={<CalendarIcon />}
+                />
+                
+                <FormInput
+                  label="Height (cm)"
+                  name="height"
+                  type="number"
+                  placeholder="e.g., 180"
+                  value={formData.height || ''}
+                  onChange={handleInputChange}
+                  error={errors.height}
+                  icon={<RulerIcon />}
+                />
+                
+                <FormInput
+                  label="Weight (kg)"
+                  name="weight"
+                  type="number"
+                  placeholder="e.g., 75"
+                  value={formData.weight || ''}
+                  onChange={handleInputChange}
+                  error={errors.weight}
+                  icon={<ScaleIcon />}
+                />
+                
+                <FormSelect
+                  label="Activity Level"
+                  name="activityLevel"
+                  value={formData.activityLevel}
+                  onChange={handleInputChange}
+                  error={errors.activityLevel}
+                  icon={<ActivityIcon />}
+                >
+                  <option value="sedentary">Sedentary (little or no exercise)</option>
+                  <option value="lightly active">Lightly Active (1-3 days/week)</option>
+                  <option value="moderately active">Moderately Active (3-5 days/week)</option>
+                  <option value="very active">Very Active (6-7 days/week)</option>
+                  <option value="extra active">Extra Active (daily hard exercise/physical job)</option>
+                </FormSelect>
+                
+                <FormSelect
+                  label="Your Goal"
+                  name="goal"
+                  value={formData.goal}
+                  onChange={handleInputChange}
+                  error={errors.goal}
+                  icon={<TargetIcon />}
+                >
+                  <option value="loseweight">Lose Weight</option>
+                  <option value="maintainweight">Maintain Weight</option>
+                  <option value="gainweight">Gain Weight</option>
+                  <option value="gainmuscle">Gain Muscle</option>
+                </FormSelect>
+              </div>
+              
+              <div className="pt-6 flex justify-center">
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className={cn(
+                    "relative w-full md:w-auto px-12 py-4 bg-gradient-to-r from-purple-600 to-blue-600 text-white font-bold font-courier-prime text-lg rounded-xl shadow-lg transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-gray-900 overflow-hidden group",
+                    "hover:from-purple-700 hover:to-blue-700 hover:shadow-xl hover:shadow-purple-500/25 hover:scale-105",
+                    "disabled:from-purple-800 disabled:to-blue-800 disabled:cursor-not-allowed disabled:scale-100"
+                  )}
+                >
+                  <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
+                  <div className="relative flex items-center justify-center gap-3">
+                    <FireIcon className="w-5 h-5" />
+                    {isLoading ? <LoadingIcon className="w-5 h-5 mr-2" /> : 'Calculate'}
+                  </div>
+                </button>
+              </div>
+            </form>
+            {apiError && (
+              <div className="text-center mt-8 font-sans text-lg text-red-400 animate-slideDown flex items-center justify-center gap-2">
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 2L1 21h22L12 2zm0 3.99L19.53 19H4.47L12 5.99zM11 16h2v2h-2v-2zm0-6h2v4h-2v-4z"/>
+                </svg>
+                {apiError}
+              </div>
+            )}
+
+            {calorieResult && !apiError && (
+              <div className={cn(
+                "mt-10 pt-8 border-t border-gray-700/50 text-center transition-all duration-700 transform",
+                showResults ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
+              )}>
+                <div className="mb-8">
+                  <div className="text-6xl mb-4">{getGoalEmoji(formData.goal)}</div>
+                  <p className="font-courier-prime text-lg text-gray-300 mb-2">
+                      Your estimated daily needs to {getGoalText(formData.goal)}:
+                  </p>
+                  <div className="relative inline-block">
+                    <p className="text-5xl md:text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 font-libre-baskerville tracking-tight relative z-10">
+                      {calorieResult.totalCalories ? Math.ceil(calorieResult.totalCalories).toLocaleString() : 'Calculating...'}
+                    </p>
+                    <div className="absolute -inset-2 bg-gradient-to-r from-purple-500/20 to-blue-500/20 rounded-lg blur-xl animate-pulse" />
+                  </div>
+                  <p className="font-sans text-2xl text-gray-400 mb-8 mt-4">
+                      kcal / day
+                  </p>
                 </div>
                 
-                <div className="pt-6 flex justify-center">
-                  <button
-                    type="submit"
-                    disabled={isLoading}
-                    className={cn(
-                      "relative w-full md:w-auto px-12 py-4 bg-gradient-to-r from-purple-600 to-blue-600 text-white font-bold font-courier-prime text-lg rounded-xl shadow-lg transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-gray-900 overflow-hidden group",
-                      "hover:from-purple-700 hover:to-blue-700 hover:shadow-xl hover:shadow-purple-500/25 hover:scale-105",
-                      "disabled:from-purple-800 disabled:to-blue-800 disabled:cursor-not-allowed disabled:scale-100"
-                    )}
-                  >
-                    <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
-                    <div className="relative flex items-center justify-center gap-3">
-                      <FireIcon className="w-5 h-5" />
-                      {isLoading ? <LoadingIcon className="w-5 h-5 mr-2" /> : 'Calculate'}
-                    </div>
-                  </button>
-                </div>
-              </form>
-              {apiError && (
-                <div className="text-center mt-8 font-sans text-lg text-red-400 animate-slideDown flex items-center justify-center gap-2">
-                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 2L1 21h22L12 2zm0 3.99L19.53 19H4.47L12 5.99zM11 16h2v2h-2v-2zm0-6h2v4h-2v-4z"/>
-                  </svg>
-                  {apiError}
-                </div>
-              )}
-
-              {calorieResult && !apiError && (
-                <div className={cn(
-                  "mt-10 pt-8 border-t border-gray-700/50 text-center transition-all duration-700 transform",
-                  showResults ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
-                )}>
-                  <div className="mb-8">
-                    <div className="text-6xl mb-4">{getGoalEmoji(formData.goal)}</div>
-                    <p className="font-courier-prime text-lg text-gray-300 mb-2">
-                        Your estimated daily needs to {getGoalText(formData.goal)}:
-                    </p>
-                    <div className="relative inline-block">
-                      <p className="text-5xl md:text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 font-libre-baskerville tracking-tight relative z-10">
-                        {calorieResult.totalCalories ? Math.ceil(calorieResult.totalCalories).toLocaleString() : 'Calculating...'}
-                      </p>
-                      <div className="absolute -inset-2 bg-gradient-to-r from-purple-500/20 to-blue-500/20 rounded-lg blur-xl animate-pulse" />
-                    </div>
-                    <p className="font-sans text-2xl text-gray-400 mb-8 mt-4">
-                        kcal / day
-                    </p>
-                  </div>
-                  
-                  {/* Enhanced Macronutrient breakdown */}
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 pt-6 border-t border-gray-800/50">
-                    <div className={cn(
-                      "flex flex-col items-center p-6 rounded-xl bg-gradient-to-br from-green-900/30 to-green-800/20 border border-green-700/30 transition-all duration-500 hover:scale-105",
-                      showResults ? "animate-slideDown" : ""
-                    )} style={{ animationDelay: '0.1s' }}>
-                      <div className="w-12 h-12 bg-green-500/20 rounded-full flex items-center justify-center mb-3">
-                        <svg className="w-6 h-6 text-green-400" viewBox="0 0 24 24" fill="currentColor">
-                          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                        </svg>
-                      </div>
-                      <span className="text-lg text-gray-400 font-courier-prime mb-2">Protein</span>
-                      <span className="text-3xl font-bold text-white font-sans">{Math.ceil(calorieResult.protein)}g</span>
-                      <div className="w-full bg-gray-700 rounded-full h-2 mt-3">
-                        <div className="bg-green-400 h-2 rounded-full transition-all duration-1000" style={{ width: '100%' }} />
-                      </div>
-                    </div>
-                    
-                    <div className={cn(
-                      "flex flex-col items-center p-6 rounded-xl bg-gradient-to-br from-orange-900/30 to-orange-800/20 border border-orange-700/30 transition-all duration-500 hover:scale-105",
-                      showResults ? "animate-slideDown" : ""
-                    )} style={{ animationDelay: '0.2s' }}>
-                      <div className="w-12 h-12 bg-orange-500/20 rounded-full flex items-center justify-center mb-3">
-                        <svg className="w-6 h-6 text-orange-400" viewBox="0 0 24 24" fill="currentColor">
-                          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-                        </svg>
-                      </div>
-                      <span className="text-lg text-gray-400 font-courier-prime mb-2">Carbs</span>
-                      <span className="text-3xl font-bold text-white font-sans">{Math.ceil(calorieResult.carbohydrates)}g</span>
-                      <div className="w-full bg-gray-700 rounded-full h-2 mt-3">
-                        <div className="bg-orange-400 h-2 rounded-full transition-all duration-1000" style={{ width: '100%' }} />
-                      </div>
-                    </div>
-                    
-                    <div className={cn(
-                      "flex flex-col items-center p-6 rounded-xl bg-gradient-to-br from-yellow-900/30 to-yellow-800/20 border border-yellow-700/30 transition-all duration-500 hover:scale-105",
-                      showResults ? "animate-slideDown" : ""
-                    )} style={{ animationDelay: '0.3s' }}>
-                      <div className="w-12 h-12 bg-yellow-500/20 rounded-full flex items-center justify-center mb-3">
-                        <svg className="w-6 h-6 text-yellow-400" viewBox="0 0 24 24" fill="currentColor">
-                          <path d="M12 2l.09.03L12 2l.09.03c3.61.48 6.68 2.65 8.34 5.76l.56 1.03c.25.49.37 1.03.37 1.57v.61c0 .54-.12 1.08-.37 1.57l-.56 1.03c-1.66 3.11-4.73 5.28-8.34 5.76L12 22l-.09-.03c-3.61-.48-6.68-2.65-8.34-5.76l-.56-1.03C2.76 14.68 2.64 14.14 2.64 13.6v-.61c0-.54.12-1.08.37-1.57l.56-1.03C5.23 7.28 8.3 5.11 11.91 4.63L12 2z"/>
-                        </svg>
-                      </div>
-                      <span className="text-lg text-gray-400 font-courier-prime mb-2">Fats</span>
-                      <span className="text-3xl font-bold text-white font-sans">{Math.ceil(calorieResult.fats)}g</span>
-                      <div className="w-full bg-gray-700 rounded-full h-2 mt-3">
-                        <div className="bg-yellow-400 h-2 rounded-full transition-all duration-1000" style={{ width: '100%' }} />
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {/* Success message with animation */}
+                {/* Enhanced Macronutrient breakdown */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 pt-6 border-t border-gray-800/50">
                   <div className={cn(
-                    "mt-8 p-4 bg-gradient-to-r from-green-900/30 to-blue-900/30 border border-green-500/30 rounded-xl transition-all duration-700",
-                    showResults ? "opacity-100 translate-y-0" : "opacity-0 translate-y-5"
-                  )} style={{ animationDelay: '0.4s' }}>
-                    <div className="flex items-center justify-center gap-2 text-green-400">
-                      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                    "flex flex-col items-center p-6 rounded-xl bg-gradient-to-br from-green-900/30 to-green-800/20 border border-green-700/30 transition-all duration-500 hover:scale-105",
+                    showResults ? "animate-slideDown" : ""
+                  )} style={{ animationDelay: '0.1s' }}>
+                    <div className="w-12 h-12 bg-green-500/20 rounded-full flex items-center justify-center mb-3">
+                      <svg className="w-6 h-6 text-green-400" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
                       </svg>
-                      <span className="font-courier-prime">Calculation Complete!</span>
                     </div>
-                    <p className="text-sm text-gray-400 mt-2 text-center">
-                      These values are estimates based on your input. Consult with a nutritionist for personalized advice.
-                    </p>
+                    <span className="text-lg text-gray-400 font-courier-prime mb-2">Protein</span>
+                    <span className="text-3xl font-bold text-white font-sans">{Math.ceil(calorieResult.protein)}g</span>
+                    <div className="w-full bg-gray-700 rounded-full h-2 mt-3">
+                      <div className="bg-green-400 h-2 rounded-full transition-all duration-1000" style={{ width: '100%' }} />
+                    </div>
+                  </div>
+                  
+                  <div className={cn(
+                    "flex flex-col items-center p-6 rounded-xl bg-gradient-to-br from-orange-900/30 to-orange-800/20 border border-orange-700/30 transition-all duration-500 hover:scale-105",
+                    showResults ? "animate-slideDown" : ""
+                  )} style={{ animationDelay: '0.2s' }}>
+                    <div className="w-12 h-12 bg-orange-500/20 rounded-full flex items-center justify-center mb-3">
+                      <svg className="w-6 h-6 text-orange-400" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                      </svg>
+                    </div>
+                    <span className="text-lg text-gray-400 font-courier-prime mb-2">Carbs</span>
+                    <span className="text-3xl font-bold text-white font-sans">{Math.ceil(calorieResult.carbohydrates)}g</span>
+                    <div className="w-full bg-gray-700 rounded-full h-2 mt-3">
+                      <div className="bg-orange-400 h-2 rounded-full transition-all duration-1000" style={{ width: '100%' }} />
+                    </div>
+                  </div>
+                  
+                  <div className={cn(
+                    "flex flex-col items-center p-6 rounded-xl bg-gradient-to-br from-yellow-900/30 to-yellow-800/20 border border-yellow-700/30 transition-all duration-500 hover:scale-105",
+                    showResults ? "animate-slideDown" : ""
+                  )} style={{ animationDelay: '0.3s' }}>
+                    <div className="w-12 h-12 bg-yellow-500/20 rounded-full flex items-center justify-center mb-3">
+                      <svg className="w-6 h-6 text-yellow-400" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2l.09.03L12 2l.09.03c3.61.48 6.68 2.65 8.34 5.76l.56 1.03c.25.49.37 1.03.37 1.57v.61c0 .54-.12 1.08-.37 1.57l-.56 1.03c-1.66 3.11-4.73 5.28-8.34 5.76L12 22l-.09-.03c-3.61-.48-6.68-2.65-8.34-5.76l-.56-1.03C2.76 14.68 2.64 14.14 2.64 13.6v-.61c0-.54.12-1.08.37-1.57l.56-1.03C5.23 7.28 8.3 5.11 11.91 4.63L12 2z"/>
+                      </svg>
+                    </div>
+                    <span className="text-lg text-gray-400 font-courier-prime mb-2">Fats</span>
+                    <span className="text-3xl font-bold text-white font-sans">{Math.ceil(calorieResult.fats)}g</span>
+                    <div className="w-full bg-gray-700 rounded-full h-2 mt-3">
+                      <div className="bg-yellow-400 h-2 rounded-full transition-all duration-1000" style={{ width: '100%' }} />
+                    </div>
                   </div>
                 </div>
-              )}
-            </CardContent>
-          </Card>
-        </main>
-        
-        {calorieResult && (
-          <div className="fixed bottom-8 right-8 z-30">
-            <button
-              onClick={() => {
-                setCalorieResult(null);
-                setShowResults(false);
-                document.getElementById('calorie-calc')?.scrollIntoView({ behavior: 'smooth' });
-              }}
-              className="w-14 h-14 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 flex items-center justify-center group"
-            >
-              <svg className="w-6 h-6 text-white transition-transform duration-300 group-hover:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M1 4v6h6"/>
-                <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>
-              </svg>
-            </button>
-          </div>
-        )}
-      </div>
-    </>
+                
+                {/* Success message with animation */}
+                <div className={cn(
+                  "mt-8 p-4 bg-gradient-to-r from-green-900/30 to-blue-900/30 border border-green-500/30 rounded-xl transition-all duration-700",
+                  showResults ? "opacity-100 translate-y-0" : "opacity-0 translate-y-5"
+                )} style={{ animationDelay: '0.4s' }}>
+                  <div className="flex items-center justify-center gap-2 text-green-400">
+                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                    </svg>
+                    <span className="font-courier-prime">Calculation Complete!</span>
+                  </div>
+                  <p className="text-sm text-gray-400 mt-2 text-center">
+                    These values are estimates based on your input. Consult with a nutritionist for personalized advice.
+                  </p>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </main>
+      
+      {calorieResult && (
+        <div className="fixed bottom-8 right-8 z-30">
+          <button
+            onClick={() => {
+              setCalorieResult(null);
+              setShowResults(false);
+              document.getElementById('calorie-calc')?.scrollIntoView({ behavior: 'smooth' });
+            }}
+            className="w-14 h-14 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 flex items-center justify-center group"
+          >
+            <svg className="w-6 h-6 text-white transition-transform duration-300 group-hover:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M1 4v6h6"/>
+              <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>
+            </svg>
+          </button>
+        </div>
+      )}
+    </motion.div>
   );
 }
