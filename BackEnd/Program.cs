@@ -1,24 +1,26 @@
-// Program.cs
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using MyApiProject.Services;
 
-
 var builder = WebApplication.CreateBuilder(args);
+
 builder.WebHost.UseUrls("https://localhost:5001");
+
+builder.Services.AddControllers();
 builder.Services.AddScoped<ICaloriesService, CaloriesService>();
+
+
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddOpenApi();
 builder.Services.AddSwaggerGen();
+
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowSpecificOrigin",
-        builder => builder
-            .WithOrigins("http://localhost:3000")
-            .AllowAnyHeader()    
-            .AllowAnyMethod()   
-            .AllowCredentials()); 
+    options.AddPolicy("AllowSpecificOrigin", builder =>
+        builder.WithOrigins("http://localhost:3000")
+               .AllowAnyHeader()
+               .AllowAnyMethod()
+               .AllowCredentials());
 });
 
 
@@ -28,13 +30,12 @@ if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
-    app.MapOpenApi();
+    app.MapOpenApi(); 
 }
 
 app.UseHttpsRedirection();
+app.UseCors("AllowSpecificOrigin");
 
-app.UseCors("AllowSpecificOrigin"); 
-app.MapGet("/hello", () => "Hello World! This is an API endpoint.")
-   .WithOpenApi();
+app.MapControllers();
 
 app.Run();

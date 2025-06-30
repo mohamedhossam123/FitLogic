@@ -6,7 +6,6 @@ namespace MyApiProject.Controllers
 
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize]
     public class CaloriesController : ControllerBase
     {
         private readonly ICaloriesService _caloriesService;

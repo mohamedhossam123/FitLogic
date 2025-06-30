@@ -1,8 +1,8 @@
 public class TDEERequestDTO
 {
-    public string ActivityLevel;
-    public int Age;
-    public int Height;
-    public int Weight;
-    public string Gender;
+    public string ActivityLevel { get; set; }
+    public int Age { get; set; }
+    public int Height { get; set; }
+    public int Weight { get; set; }
+    public string Gender { get; set; }
 }
