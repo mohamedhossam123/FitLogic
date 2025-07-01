@@ -1,4 +1,6 @@
+using BackEnd.Models;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using MyApiProject.Services;
@@ -9,6 +11,9 @@ builder.WebHost.UseUrls("https://localhost:5001");
 
 builder.Services.AddControllers();
 builder.Services.AddScoped<ICaloriesService, CaloriesService>();
+
+builder.Services.AddDbContext<FitLogicContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 
 builder.Services.AddEndpointsApiExplorer();
