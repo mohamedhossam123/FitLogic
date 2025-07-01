@@ -15,24 +15,24 @@ public partial class FitLogicContext : DbContext
     {
     }
 
-    public virtual DbSet<Exercise> Exercises { get; set; }
+    public virtual DbSet<Exercises> Exercises { get; set; }
 
     public virtual DbSet<ExerciseMuscleTarget> ExerciseMuscleTargets { get; set; }
 
-    public virtual DbSet<ExerciseType> ExerciseTypes { get; set; }
+    public virtual DbSet<ExerciseTypes> ExerciseTypes { get; set; }
 
-    public virtual DbSet<MuscleGroup> MuscleGroups { get; set; }
+    public virtual DbSet<MuscleGroups> MuscleGroups { get; set; }
 
-    public virtual DbSet<SkillLevel> SkillLevels { get; set; }
+    public virtual DbSet<SkillLevels> SkillLevels { get; set; }
 
-    public virtual DbSet<SubMuscle> SubMuscles { get; set; }
+    public virtual DbSet<SubMuscles> SubMuscles { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         => optionsBuilder.UseSqlServer("Server=DESKTOP-FM1OTR0;Database=FitLogic;Trusted_Connection=True;TrustServerCertificate=True;");
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<Exercise>(entity =>
+        modelBuilder.Entity<Exercises>(entity =>
         {
             entity.HasKey(e => e.ExerciseId).HasName("PK__Exercise__A074AD0F00C47894");
 
@@ -81,7 +81,7 @@ public partial class FitLogicContext : DbContext
                 .HasConstraintName("FK__ExerciseM__SubMu__45F365D3");
         });
 
-        modelBuilder.Entity<ExerciseType>(entity =>
+        modelBuilder.Entity<ExerciseTypes>(entity =>
         {
             entity.HasKey(e => e.ExerciseTypeId).HasName("PK__Exercise__6CBFB0D7BA431728");
 
@@ -91,7 +91,7 @@ public partial class FitLogicContext : DbContext
                 .HasMaxLength(100);
         });
 
-        modelBuilder.Entity<MuscleGroup>(entity =>
+        modelBuilder.Entity<MuscleGroups>(entity =>
         {
             entity.HasKey(e => e.MuscleGroupId).HasName("PK__MuscleGr__097AE806D5FA3272");
 
@@ -101,7 +101,7 @@ public partial class FitLogicContext : DbContext
                 .HasMaxLength(100);
         });
 
-        modelBuilder.Entity<SkillLevel>(entity =>
+        modelBuilder.Entity<SkillLevels>(entity =>
         {
             entity.HasKey(e => e.SkillLevelId).HasName("PK__SkillLev__927B2DA7BC1D5507");
 
@@ -111,7 +111,7 @@ public partial class FitLogicContext : DbContext
                 .HasMaxLength(50);
         });
 
-        modelBuilder.Entity<SubMuscle>(entity =>
+        modelBuilder.Entity<SubMuscles>(entity =>
         {
             entity.HasKey(e => e.SubMuscleId).HasName("PK__SubMuscl__B4FC4412D98268CB");
 

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace BackEnd.Models;
 
-public partial class MuscleGroup
+public partial class MuscleGroups
 {
     public int MuscleGroupId { get; set; }
 
@@ -11,5 +11,5 @@ public partial class MuscleGroup
 
     public virtual ICollection<ExerciseMuscleTarget> ExerciseMuscleTargets { get; set; } = new List<ExerciseMuscleTarget>();
 
-    public virtual ICollection<SubMuscle> SubMuscles { get; set; } = new List<SubMuscle>();
+    public virtual ICollection<SubMuscles> SubMuscles { get; set; } = new List<SubMuscles>();
 }

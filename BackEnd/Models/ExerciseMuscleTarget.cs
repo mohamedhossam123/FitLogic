@@ -15,9 +15,9 @@ public partial class ExerciseMuscleTarget
 
     public bool IsMainMuscle { get; set; }
 
-    public virtual Exercise Exercise { get; set; }
+    public virtual Exercises Exercise { get; set; }
 
-    public virtual MuscleGroup MuscleGroup { get; set; }
+    public virtual MuscleGroups MuscleGroup { get; set; }
 
-    public virtual SubMuscle SubMuscle { get; set; }
+    public virtual SubMuscles SubMuscle { get; set; }
 }

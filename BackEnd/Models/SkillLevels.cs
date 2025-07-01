@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace BackEnd.Models;
 
-public partial class SkillLevel
+public partial class SkillLevels
 {
     public int SkillLevelId { get; set; }
 
@@ -11,5 +11,5 @@ public partial class SkillLevel
 
     public int YearsOfTraining { get; set; }
 
-    public virtual ICollection<Exercise> Exercises { get; set; } = new List<Exercise>();
+    public virtual ICollection<Exercises> Exercises { get; set; } = new List<Exercises>();
 }
