@@ -11,7 +11,7 @@ builder.WebHost.UseUrls("https://localhost:5001");
 
 builder.Services.AddControllers();
 builder.Services.AddScoped<ICaloriesService, CaloriesService>();
-
+builder.Services.AddScoped<IWorkoutService, WorkoutService>();
 builder.Services.AddDbContext<FitLogicContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 

@@ -28,7 +28,11 @@ public partial class FitLogicContext : DbContext
     public virtual DbSet<SubMuscles> SubMuscles { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-        => optionsBuilder.UseSqlServer("Server=DESKTOP-FM1OTR0;Database=FitLogic;Trusted_Connection=True;TrustServerCertificate=True;");
+    {
+        optionsBuilder.UseSqlServer(
+            "Server=DESKTOP-FM1OTR0;Database=FitLogic;Trusted_Connection=True;TrustServerCertificate=True;",
+            options => options.CommandTimeout(120)); 
+    }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
