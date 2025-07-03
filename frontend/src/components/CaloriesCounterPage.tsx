@@ -366,7 +366,7 @@ export default function CaloriesCounterPage() {
   
   const getGoalText = (goal: string | undefined) => {
     switch (goal) {
-        case 'lossweight': return 'lose weight';
+        case 'lossweight': return 'lossweight';
         case 'gainweight': return 'gain weight';
         case 'gainmuscle': return 'gain muscle';
         case 'maintainweight': return 'maintain your weight';
@@ -491,7 +491,7 @@ export default function CaloriesCounterPage() {
                   error={errors.goal}
                   icon={<TargetIcon />}
                 >
-                  <option value="Lossweight">Lose Weight</option>
+                  <option value="lossweight">Lose Weight</option>
                   <option value="maintainweight">Maintain Weight</option>
                   <option value="gainweight">Gain Weight</option>
                   <option value="gainmuscle">Gain Muscle</option>
