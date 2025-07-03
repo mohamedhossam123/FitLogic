@@ -54,7 +54,7 @@ namespace MyApiProject.Services
             string goal = request.Goal?.Trim().ToLower(); 
             switch (goal)
             {
-                case "loseweight":
+                case "lossweight":
                     totalCalories = Math.Max(tdee - 500, 1200); 
                     break;
                 case "gainweight":
@@ -81,7 +81,7 @@ namespace MyApiProject.Services
                     carbCalories = totalCalories - proteinCalories - fatCalories;
                     break;
 
-                case "loseweight":
+                case "lossweight":
                     proteinCalories = totalCalories * 0.30f;
                     fatCalories = totalCalories * 0.25f;
                     carbCalories = totalCalories * 0.45f;

@@ -103,7 +103,7 @@ export const LandingPage = (): JSX.Element => {
               Effortlessly create your perfect workout. Our algorithm crafts personalized plans you can easily fine-tune to match your style and goals.
             </p>
             <Card
-              onClick={() => router.push('/workout-planner')}
+              onClick={() => router.push('/workoutplan')}
               className="w-full max-w-md ml-auto py-4 px-6 transition-transform duration-300 hover:scale-[1.02] cursor-pointer"
             >
               <CardContent className="flex items-center justify-center h-full p-0">

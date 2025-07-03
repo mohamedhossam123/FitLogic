@@ -13,7 +13,7 @@ const calorieFormSchema = z.object({
   height: z.number().min(100, "Height must be at least 100 cm").max(250, "Height must be at most 250 cm"),
   weight: z.number().min(30, "Weight must be at least 30 kg").max(200, "Weight must be at most 200 kg"),
   activityLevel: z.enum(['sedentary', 'lightly active', 'moderately active', 'very active', 'extra active']),
-  goal: z.enum(['loseweight', 'maintainweight', 'gainweight', 'gainmuscle']),
+  goal: z.enum(['lossweight', 'maintainweight', 'gainweight', 'gainmuscle']),
 });
 
 type CalorieFormData = z.infer<typeof calorieFormSchema>;
@@ -366,7 +366,7 @@ export default function CaloriesCounterPage() {
   
   const getGoalText = (goal: string | undefined) => {
     switch (goal) {
-        case 'loseweight': return 'lose weight';
+        case 'lossweight': return 'lose weight';
         case 'gainweight': return 'gain weight';
         case 'gainmuscle': return 'gain muscle';
         case 'maintainweight': return 'maintain your weight';
@@ -376,7 +376,7 @@ export default function CaloriesCounterPage() {
 
   const getGoalEmoji = (goal: string | undefined) => {
     switch (goal) {
-        case 'loseweight': return '🎯';
+        case 'lossWeight': return '🎯';
         case 'gainweight': return '📈';
         case 'gainmuscle': return '💪';
         case 'maintainweight': return '⚖️';
@@ -491,7 +491,7 @@ export default function CaloriesCounterPage() {
                   error={errors.goal}
                   icon={<TargetIcon />}
                 >
-                  <option value="loseweight">Lose Weight</option>
+                  <option value="Lossweight">Lose Weight</option>
                   <option value="maintainweight">Maintain Weight</option>
                   <option value="gainweight">Gain Weight</option>
                   <option value="gainmuscle">Gain Muscle</option>
