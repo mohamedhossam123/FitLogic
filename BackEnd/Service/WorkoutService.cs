@@ -709,85 +709,108 @@ namespace MyApiProject.Services
     return fullSchedule;
 }
 
-
-        public async Task<List<ExerciseDTO>> GetSmartExerciseReplacement(
-            int exerciseToChangeId, 
-            string exerciseToChangeName, 
+    public async Task<List<ExerciseDTO>> GetSmartExerciseReplacement(
+            int exerciseToChangeId,
+            string exerciseToChangeName,
             int userSkillLevelId,
             string userFitnessGoalString,
-            List<ExerciseDTO> currentWorkoutExercises)
+            List<ExerciseDTO> currentWorkoutExercises,
+            List<WorkoutTypeDTO> fullWorkoutPlan = null)
         {
             Exercises originalExercise = null;
             if (exerciseToChangeId > 0)
             {
                 originalExercise = await GetExerciseDetailsById(exerciseToChangeId);
             }
-
             if (originalExercise == null && !string.IsNullOrEmpty(exerciseToChangeName))
             {
                 originalExercise = await _context.Exercises
                     .Include(e => e.ExerciseMuscleTargets)
                         .ThenInclude(emt => emt.MuscleGroup)
+                    .Include(e => e.SkillLevel)
+                    .Include(e => e.ExerciseType)
                     .FirstOrDefaultAsync(e => e.ExerciseName == exerciseToChangeName);
             }
-
             if (originalExercise == null)
             {
-                Console.WriteLine($"Error: Original exercise '{exerciseToChangeName}' (ID: {exerciseToChangeId}) not found in database.");
-                return new List<ExerciseDTO>(); 
+                return new List<ExerciseDTO>();
             }
 
-            var originalExerciseMainMuscleGroupIds = originalExercise.ExerciseMuscleTargets
+            var originalMainMuscleGroupIds = originalExercise.ExerciseMuscleTargets
                 .Where(emt => emt.IsMainMuscle)
                 .Select(emt => emt.MuscleGroupId)
                 .Distinct()
                 .ToList();
-            var alreadyTargetedMuscleGroupIds = new HashSet<int>();
-
-            foreach (var existingDto in currentWorkoutExercises)
-            {
-                Exercises existingDbExercise = null;
-                if (existingDto.ExerciseId.HasValue && existingDto.ExerciseId.Value > 0)
-                {
-                    existingDbExercise = await GetExerciseDetailsById(existingDto.ExerciseId.Value);
-                }
-                else if (!string.IsNullOrEmpty(existingDto.Name))
-                {
-                    existingDbExercise = await _context.Exercises
-                        .Include(e => e.ExerciseMuscleTargets)
-                        .FirstOrDefaultAsync(e => e.ExerciseName == existingDto.Name);
-                }
-
-                if (existingDbExercise != null && existingDbExercise.ExerciseId != originalExercise.ExerciseId)
-                {
-                    var mainTargets = existingDbExercise.ExerciseMuscleTargets
-                        .Where(emt => emt.IsMainMuscle)
-                        .Select(emt => emt.MuscleGroupId)
-                        .ToList();
-                    foreach (var mgId in mainTargets)
-                    {
-                        alreadyTargetedMuscleGroupIds.Add(mgId);
-                    }
-                }
-            }
 
             FitnessGoalMapping.FitnessGoal userFitnessGoal;
             try
             {
                 userFitnessGoal = FitnessGoalMapping.ParseFitnessGoal(userFitnessGoalString);
             }
-            catch (ArgumentException ex)
+            catch (ArgumentException)
             {
-                Console.WriteLine($"Error parsing fitness goal: {ex.Message}");
+                var fallback = await _context.Exercises
+                    .Include(e => e.ExerciseMuscleTargets)
+                        .ThenInclude(emt => emt.MuscleGroup)
+                    .Include(e => e.ExerciseMuscleTargets)
+                        .ThenInclude(emt => emt.SubMuscle)
+                    .Include(e => e.SkillLevel)
+                    .Include(e => e.ExerciseType)
+                    .Where(e =>
+                        e.ExerciseId != originalExercise.ExerciseId &&
+                        e.SkillLevelId <= userSkillLevelId
+                    )
+                    .ToListAsync();
+                if (fallback.Count > 0)
+                {
+                    var chosen = fallback.OrderBy(x => Guid.NewGuid()).First();
+                    return new List<ExerciseDTO> {
+                        new ExerciseDTO {
+                            ExerciseId = chosen.ExerciseId,
+                            Name = chosen.ExerciseName,
+                            VideoLink = chosen.VideoLinks,
+                            SkillLevelName = chosen.SkillLevel?.LevelName,
+                            ExerciseTypeName = chosen.ExerciseType?.ExerciseTypeName,
+                            Sets = "Dynamic based on goal",
+                            Reps = "Auto",
+                            Notes = "Fallback due to invalid goal."
+                        }
+                    };
+                }
+                var lastResort = await _context.Exercises
+                    .Include(e => e.ExerciseMuscleTargets)
+                        .ThenInclude(emt => emt.MuscleGroup)
+                    .Include(e => e.ExerciseMuscleTargets)
+                        .ThenInclude(emt => emt.SubMuscle)
+                    .Include(e => e.SkillLevel)
+                    .Include(e => e.ExerciseType)
+                    .Where(e => e.ExerciseId != originalExercise.ExerciseId)
+                    .ToListAsync();
+                if (lastResort.Count > 0)
+                {
+                    var chosen = lastResort.OrderBy(x => Guid.NewGuid()).First();
+                    return new List<ExerciseDTO> {
+                        new ExerciseDTO {
+                            ExerciseId = chosen.ExerciseId,
+                            Name = chosen.ExerciseName,
+                            VideoLink = chosen.VideoLinks,
+                            SkillLevelName = chosen.SkillLevel?.LevelName,
+                            ExerciseTypeName = chosen.ExerciseType?.ExerciseTypeName,
+                            Sets = "Dynamic based on goal",
+                            Reps = "Auto",
+                            Notes = "Fallback due to invalid goal."
+                        }
+                    };
+                }
                 return new List<ExerciseDTO>();
             }
-
             var targetExerciseTypeNames = FitnessGoalMapping.GetExerciseTypeNamesForGoal(userFitnessGoal);
             var targetExerciseTypeIds = await _context.ExerciseTypes
-                                                      .Where(et => targetExerciseTypeNames.Contains(et.ExerciseTypeName))
-                                                      .Select(et => et.ExerciseTypeId)
-                                                      .ToListAsync();
-            var candidateExercisesQuery = _context.Exercises
+                .Where(et => targetExerciseTypeNames.Contains(et.ExerciseTypeName))
+                .Select(et => et.ExerciseTypeId)
+                .ToListAsync();
+
+            var allCandidates = await _context.Exercises
                 .Include(e => e.ExerciseMuscleTargets)
                     .ThenInclude(emt => emt.MuscleGroup)
                 .Include(e => e.ExerciseMuscleTargets)
@@ -795,46 +818,191 @@ namespace MyApiProject.Services
                 .Include(e => e.SkillLevel)
                 .Include(e => e.ExerciseType)
                 .Where(e =>
-                    e.ExerciseId != originalExercise.ExerciseId && 
-                    e.SkillLevelId == userSkillLevelId &&          
-                    targetExerciseTypeIds.Contains(e.ExerciseTypeId) 
-                );
+                    e.ExerciseId != originalExercise.ExerciseId &&
+                    e.SkillLevelId <= userSkillLevelId &&
+                    targetExerciseTypeIds.Contains(e.ExerciseTypeId)
+                )
+                .ToListAsync();
 
-            var allCandidates = await candidateExercisesQuery.ToListAsync();
-            var filteredCandidates = allCandidates.Where(e =>
-            {
-                var candidateMainMuscleGroups = e.ExerciseMuscleTargets
-                                                 .Where(emt => emt.IsMainMuscle)
-                                                 .Select(emt => emt.MuscleGroupId)
-                                                 .ToList();
-
-                return !candidateMainMuscleGroups.Any(mgId => alreadyTargetedMuscleGroupIds.Contains(mgId));
-            }).ToList();
-            var prioritizedSuggestions = filteredCandidates
-                .OrderByDescending(e =>
-                {
-                    var candidateMainMuscleGroups = e.ExerciseMuscleTargets
-                                                     .Where(emt => emt.IsMainMuscle)
-                                                     .Select(emt => emt.MuscleGroupId)
-                                                     .ToList();
-                    return candidateMainMuscleGroups.Count(mgId => originalExerciseMainMuscleGroupIds.Contains(mgId));
+            //  Data-driven: prioritize exercises with highest main muscle overlap, prefer compound movements
+            // Score all candidates by main muscle overlap with the original
+            var scoredCandidates = allCandidates
+                .Select(e => new {
+                    Exercise = e,
+                    Overlap = e.ExerciseMuscleTargets
+                        .Where(emt => emt.IsMainMuscle)
+                        .Select(emt => emt.MuscleGroupId)
+                        .Intersect(originalMainMuscleGroupIds).Count(),
+                    MainMuscleCount = e.ExerciseMuscleTargets.Count(emt => emt.IsMainMuscle),
+                    IsCompound = e.ExerciseMuscleTargets.Count(emt => emt.IsMainMuscle) > 1
                 })
-                .ThenBy(e => Guid.NewGuid()) 
+                .OrderByDescending(x => x.Overlap)
+                .ThenByDescending(x => x.IsCompound)
+                .ThenByDescending(x => x.MainMuscleCount)
+                .ThenBy(x => Guid.NewGuid())
                 .ToList();
 
-            var suggestedDtos = prioritizedSuggestions.Select(e => new ExerciseDTO
+            // If there are any with overlap > 0, pick the best one (not the second-best, since user wants the most relevant)
+            var bestOverlap = scoredCandidates.FirstOrDefault()?.Overlap ?? 0;
+            var bestCandidates = scoredCandidates.Where(x => x.Overlap == bestOverlap && bestOverlap > 0).ToList();
+            if (bestCandidates.Count > 0)
             {
-                ExerciseId = e.ExerciseId,
-                Name = e.ExerciseName,
-                VideoLink = e.VideoLinks,
-                SkillLevelName = e.SkillLevel?.LevelName,
-                ExerciseTypeName = e.ExerciseType?.ExerciseTypeName,
-                Sets = "Dynamic based on goal",
-                Reps = FitnessGoalMapping.GetRecommendedRepsForGoal(userFitnessGoal).Description,
-                Notes = "Suggested replacement."
-            }).ToList();
+                var chosen = bestCandidates.First();
+                return new List<ExerciseDTO> {
+                    new ExerciseDTO {
+                        ExerciseId = chosen.Exercise.ExerciseId,
+                        Name = chosen.Exercise.ExerciseName,
+                        VideoLink = chosen.Exercise.VideoLinks,
+                        SkillLevelName = chosen.Exercise.SkillLevel?.LevelName,
+                        ExerciseTypeName = chosen.Exercise.ExerciseType?.ExerciseTypeName,
+                        Sets = "Dynamic based on goal",
+                        Reps = FitnessGoalMapping.GetRecommendedRepsForGoal(userFitnessGoal).Description,
+                        Notes = "Smart replacement based on main muscle overlap.",
+                        MainMusclesTargeted = chosen.Exercise.ExerciseMuscleTargets
+                            .Where(emt => emt.IsMainMuscle)
+                            .Select(emt => emt.MuscleGroup?.MuscleGroupName)
+                            .Where(name => !string.IsNullOrEmpty(name))
+                            .Distinct()
+                            .ToList()
+                    }
+                };
+            }
 
-            return suggestedDtos;
+            if (scoredCandidates.Count >= 2)
+            {
+                var grouped = scoredCandidates.GroupBy(x => x.Overlap).OrderByDescending(g => g.Key).ToList();
+                if (grouped.Count > 1)
+                {
+                    var secondBestGroup = grouped[1].ToList();
+                    var chosen = secondBestGroup.OrderBy(x => Guid.NewGuid()).First();
+                    return new List<ExerciseDTO> {
+                        new ExerciseDTO {
+                            ExerciseId = chosen.Exercise.ExerciseId,
+                            Name = chosen.Exercise.ExerciseName,
+                            VideoLink = chosen.Exercise.VideoLinks,
+                            SkillLevelName = chosen.Exercise.SkillLevel?.LevelName,
+                            ExerciseTypeName = chosen.Exercise.ExerciseType?.ExerciseTypeName,
+                            Sets = "Dynamic based on goal",
+                            Reps = $"{FitnessGoalMapping.GetRecommendedRepsForGoal(userFitnessGoal).MinReps}-{FitnessGoalMapping.GetRecommendedRepsForGoal(userFitnessGoal).MaxReps}",
+                            Notes = "Second-best smart replacement.",
+                            MainMusclesTargeted = chosen.Exercise.ExerciseMuscleTargets
+                                .Where(emt => emt.IsMainMuscle)
+                                .Select(emt => emt.MuscleGroup?.MuscleGroupName)
+                                .Where(name => !string.IsNullOrEmpty(name))
+                                .Distinct()
+                                .ToList()
+                        }
+                    };
+                }
+                else
+                {
+                    var chosen = scoredCandidates[1];
+                    return new List<ExerciseDTO> {
+                        new ExerciseDTO {
+                            ExerciseId = chosen.Exercise.ExerciseId,
+                            Name = chosen.Exercise.ExerciseName,
+                            VideoLink = chosen.Exercise.VideoLinks,
+                            SkillLevelName = chosen.Exercise.SkillLevel?.LevelName,
+                            ExerciseTypeName = chosen.Exercise.ExerciseType?.ExerciseTypeName,
+                            Sets = "Dynamic based on goal",
+                            Reps = $"{FitnessGoalMapping.GetRecommendedRepsForGoal(userFitnessGoal).MinReps}-{FitnessGoalMapping.GetRecommendedRepsForGoal(userFitnessGoal).MaxReps}",
+                            Notes = "Second-best smart replacement.",
+                            MainMusclesTargeted = chosen.Exercise.ExerciseMuscleTargets
+                                .Where(emt => emt.IsMainMuscle)
+                                .Select(emt => emt.MuscleGroup?.MuscleGroupName)
+                                .Where(name => !string.IsNullOrEmpty(name))
+                                .Distinct()
+                                .ToList()
+                        }
+                    };
+                }
+            }
+
+            if (scoredCandidates.Count == 1)
+            {
+                var chosen = scoredCandidates[0];
+                return new List<ExerciseDTO> {
+                    new ExerciseDTO {
+                        ExerciseId = chosen.Exercise.ExerciseId,
+                        Name = chosen.Exercise.ExerciseName,
+                        VideoLink = chosen.Exercise.VideoLinks,
+                        SkillLevelName = chosen.Exercise.SkillLevel?.LevelName,
+                        ExerciseTypeName = chosen.Exercise.ExerciseType?.ExerciseTypeName,
+                        Sets = "Dynamic based on goal",
+                        Reps = $"{FitnessGoalMapping.GetRecommendedRepsForGoal(userFitnessGoal).MinReps}-{FitnessGoalMapping.GetRecommendedRepsForGoal(userFitnessGoal).MaxReps}",
+                        Notes = "Only one smart replacement found.",
+                        MainMusclesTargeted = chosen.Exercise.ExerciseMuscleTargets
+                            .Where(emt => emt.IsMainMuscle)
+                            .Select(emt => emt.MuscleGroup?.MuscleGroupName)
+                            .Where(name => !string.IsNullOrEmpty(name))
+                            .Distinct()
+                            .ToList()
+                    }
+                };
+            }
+
+            var fallbackCandidates = await _context.Exercises
+                .Include(e => e.ExerciseMuscleTargets)
+                    .ThenInclude(emt => emt.MuscleGroup)
+                .Include(e => e.ExerciseMuscleTargets)
+                    .ThenInclude(emt => emt.SubMuscle)
+                .Include(e => e.SkillLevel)
+                .Include(e => e.ExerciseType)
+                .Where(e =>
+                    e.ExerciseId != originalExercise.ExerciseId &&
+                    e.SkillLevelId <= userSkillLevelId
+                )
+                .ToListAsync();
+            if (fallbackCandidates.Count > 0)
+            {
+                var chosen = fallbackCandidates.OrderBy(x => Guid.NewGuid()).First();
+                return new List<ExerciseDTO> {
+                    new ExerciseDTO {
+                        ExerciseId = chosen.ExerciseId,
+                        Name = chosen.ExerciseName,
+                        VideoLink = chosen.VideoLinks,
+                        SkillLevelName = chosen.SkillLevel?.LevelName,
+                        ExerciseTypeName = chosen.ExerciseType?.ExerciseTypeName,
+                        Sets = "Dynamic based on goal",
+                        Reps = FitnessGoalMapping.GetRecommendedRepsForGoal(userFitnessGoal).Description,
+                        Notes = "Fallback smart replacement."
+                    }
+                };
+            }
+
+            // 7. If still nothing, return any exercise at all (last resort)
+            var lastResort2 = await _context.Exercises
+                .Include(e => e.ExerciseMuscleTargets)
+                    .ThenInclude(emt => emt.MuscleGroup)
+                .Include(e => e.ExerciseMuscleTargets)
+                    .ThenInclude(emt => emt.SubMuscle)
+                .Include(e => e.SkillLevel)
+                .Include(e => e.ExerciseType)
+                .Where(e => e.ExerciseId != originalExercise.ExerciseId)
+                .ToListAsync();
+            if (lastResort2.Count > 0)
+            {
+                var chosen = lastResort2.OrderBy(x => Guid.NewGuid()).First();
+                return new List<ExerciseDTO> {
+                    new ExerciseDTO {
+                        ExerciseId = chosen.ExerciseId,
+                        Name = chosen.ExerciseName,
+                        VideoLink = chosen.VideoLinks,
+                        SkillLevelName = chosen.SkillLevel?.LevelName,
+                        ExerciseTypeName = chosen.ExerciseType?.ExerciseTypeName,
+                        Sets = "Dynamic based on goal",
+                        Reps = FitnessGoalMapping.GetRecommendedRepsForGoal(userFitnessGoal).Description,
+                        Notes = "Last resort smart replacement."
+                    }
+                };
+            }
+
+            return new List<ExerciseDTO>();
+        }
+
+        async Task<List<ExerciseDTO>> IWorkoutService.GetSmartExerciseReplacement(int exerciseToChangeId, string exerciseToChangeName, int userSkillLevelId, string userFitnessGoalString, List<ExerciseDTO> currentWorkoutExercises, List<WorkoutTypeDTO> fullWorkoutPlan)
+        {
+            return await GetSmartExerciseReplacement(exerciseToChangeId, exerciseToChangeName, userSkillLevelId, userFitnessGoalString, currentWorkoutExercises, fullWorkoutPlan);
         }
 
         public string GetRecommendedRepsDescription(string userFitnessGoalString)

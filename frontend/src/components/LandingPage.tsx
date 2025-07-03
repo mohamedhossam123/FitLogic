@@ -69,11 +69,10 @@ export const LandingPage = (): JSX.Element => {
       className="bg-[#070808] text-white font-inter w-full min-h-screen antialiased"
     >
       <Navbar activeSection={activeSection} setActiveSection={setActiveSection} />
-
       {/* Hero Section */}
       <section id="home" className="relative h-[1042px] w-full bg-cover bg-center" style={{ backgroundImage: "url('/section-1.png')" }}>
         <div className="absolute inset-0 bg-gradient-to-t from-[#070808] to-transparent"></div>
-        <div className="relative z-10 flex flex-col justify-center h-full px-6 md:px-12 lg:px-[113px] pt-0">
+        <div className="relative z-10 flex flex-col h-full px-6 md:px-12 lg:px-[113px] pt-[150px]">
           <h1
             data-aos="fade-right"
             data-aos-delay="200"

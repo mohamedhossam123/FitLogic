@@ -50,12 +50,13 @@ namespace MyApiProject.Services
 
         public static FitnessGoal ParseFitnessGoal(string goalString)
         {
-            return goalString.ToLowerInvariant() switch
+            var normalized = goalString.Replace(" ", string.Empty).ToLowerInvariant();
+            return normalized switch
             {
-                "maintain weight" => FitnessGoal.MaintainWeight,
-                "build muscle" => FitnessGoal.BuildMuscle,
-                "build strength" => FitnessGoal.BuildStrength,
-                "loss weight" => FitnessGoal.LossWeight,
+                "maintainweight" => FitnessGoal.MaintainWeight,
+                "buildmuscle" => FitnessGoal.BuildMuscle,
+                "buildstrength" => FitnessGoal.BuildStrength,
+                "lossweight" => FitnessGoal.LossWeight,
                 _ => throw new ArgumentException($"Invalid fitness goal string provided: {goalString}. Expected 'maintain weight', 'build muscle', 'build strength', or 'loss weight'.")
             };
         }
