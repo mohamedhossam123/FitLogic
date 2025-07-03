@@ -233,9 +233,7 @@ const response = await fetch(apiUrl, {
             // Find the user's skill level id (if available, else fallback to 2 = Intermediate)
             let userSkillLevelId = 2;
             const skillLevelMap: Record<string, number> = { Beginner: 1, Intermediate: 2, Advanced: 3 };
-            if (skillLevelMap[level]) userSkillLevelId = skillLevelMap[level];
-
-            // Find the exercise name if not provided
+            if (skillLevelMap[level]) userSkillLevelId = skillLevelMap[level]
             let exerciseToChangeName = exerciseName;
             if (!exerciseToChangeName) {
                 const found = currentExercises.find(e => e.exerciseId === exerciseId);

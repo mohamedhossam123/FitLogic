@@ -913,13 +913,10 @@ namespace MyApiProject.Services
         dbExercises.AddRange(batchResults);
     }
 
-    var dbExerciseMap = dbExercises.ToDictionary<
-        dynamic, string, dynamic
-    >(
-        e => (string)e.ExerciseName,
-        e => e,
-        StringComparer.OrdinalIgnoreCase
-    );
+    // Remove duplicates by ExerciseName (keep first occurrence)
+    var dbExerciseMap = dbExercises
+        .GroupBy(e => (string)e.ExerciseName, StringComparer.OrdinalIgnoreCase)
+        .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
 
     foreach (var dayName in scheduleNames)
     {
@@ -948,9 +945,29 @@ namespace MyApiProject.Services
         {
             if (dbExerciseMap.TryGetValue(ex.Name, out var dbExercise))
             {
+                // Try to get main muscles from the DB if possible
+                List<string> mainMuscles = new List<string>();
+                int exerciseIdInt = 0;
+                try { exerciseIdInt = (int)dbExercise.ExerciseId; } catch { }
+                if (_context != null && exerciseIdInt > 0)
+                {
+                    var dbExerciseFull = await _context.Exercises
+                        .Include(e => e.ExerciseMuscleTargets)
+                            .ThenInclude(emt => emt.MuscleGroup)
+                        .FirstOrDefaultAsync(e => e.ExerciseId == exerciseIdInt);
+                    if (dbExerciseFull != null)
+                    {
+                        mainMuscles = dbExerciseFull.ExerciseMuscleTargets
+                            .Where(emt => emt.IsMainMuscle && emt.MuscleGroup != null)
+                            .Select(emt => emt.MuscleGroup.MuscleGroupName)
+                            .Where(name => !string.IsNullOrEmpty(name))
+                            .Distinct()
+                            .ToList();
+                    }
+                }
                 enrichedExercises.Add(new ExerciseDTO
                 {
-                    ExerciseId = dbExercise.ExerciseId,
+                    ExerciseId = exerciseIdInt,
                     Name = ex.Name,
                     Sets = ex.Sets,
                     Reps = ex.Reps,
@@ -958,7 +975,7 @@ namespace MyApiProject.Services
                     VideoLink = dbExercise.VideoLinks,
                     SkillLevelName = dbExercise.SkillLevelName,
                     ExerciseTypeName = dbExercise.ExerciseTypeName,
-                    MainMusclesTargeted = new List<string>() 
+                    MainMusclesTargeted = mainMuscles
                 });
             }
             else
@@ -1005,9 +1022,17 @@ namespace MyApiProject.Services
                 return new List<ExerciseDTO>();
             }
 
+
             var originalMainMuscleGroupIds = originalExercise.ExerciseMuscleTargets
                 .Where(emt => emt.IsMainMuscle)
                 .Select(emt => emt.MuscleGroupId)
+                .Distinct()
+                .ToList();
+
+            // Also get sub-muscles for more granular matching
+            var originalMainSubMuscleIds = originalExercise.ExerciseMuscleTargets
+                .Where(emt => emt.IsMainMuscle)
+                .Select(emt => emt.SubMuscleId)
                 .Distinct()
                 .ToList();
 
@@ -1079,6 +1104,20 @@ namespace MyApiProject.Services
                 .Select(et => et.ExerciseTypeId)
                 .ToListAsync();
 
+            List<int> allowedSkillLevelIds = new List<int>();
+            if (userSkillLevelId >= 3) 
+            {
+                allowedSkillLevelIds = new List<int> { 1, 2, 3 };
+            }
+            else if (userSkillLevelId == 2) 
+            {
+                allowedSkillLevelIds = new List<int> { 1, 2 };
+            }
+            else 
+            {
+                allowedSkillLevelIds = new List<int> { 1 };
+            }
+
             var allCandidates = await _context.Exercises
                 .Include(e => e.ExerciseMuscleTargets)
                     .ThenInclude(emt => emt.MuscleGroup)
@@ -1088,7 +1127,7 @@ namespace MyApiProject.Services
                 .Include(e => e.ExerciseType)
                 .Where(e =>
                     e.ExerciseId != originalExercise.ExerciseId &&
-                    e.SkillLevelId <= userSkillLevelId &&
+                    allowedSkillLevelIds.Contains(e.SkillLevelId) &&
                     targetExerciseTypeIds.Contains(e.ExerciseTypeId)
                 )
                 .ToListAsync();
@@ -1096,24 +1135,45 @@ namespace MyApiProject.Services
             //  Data-driven: prioritize exercises with highest main muscle overlap, prefer compound movements
             // Score all candidates by main muscle overlap with the original
             var scoredCandidates = allCandidates
-                .Select(e => new {
-                    Exercise = e,
-                    Overlap = e.ExerciseMuscleTargets
+                .Select(e => {
+                    var mainMuscleIds = e.ExerciseMuscleTargets
                         .Where(emt => emt.IsMainMuscle)
                         .Select(emt => emt.MuscleGroupId)
-                        .Intersect(originalMainMuscleGroupIds).Count(),
-                    MainMuscleCount = e.ExerciseMuscleTargets.Count(emt => emt.IsMainMuscle),
-                    IsCompound = e.ExerciseMuscleTargets.Count(emt => emt.IsMainMuscle) > 1
+                        .Distinct()
+                        .ToList();
+                    var subMuscleIds = e.ExerciseMuscleTargets
+                        .Where(emt => emt.IsMainMuscle)
+                        .Select(emt => emt.SubMuscleId)
+                        .Distinct()
+                        .ToList();
+                    int subMuscleOverlap = subMuscleIds.Intersect(originalMainSubMuscleIds).Count();
+                    int mainMuscleOverlap = mainMuscleIds.Intersect(originalMainMuscleGroupIds).Count();
+                    return new {
+                        Exercise = e,
+                        SubMuscleOverlap = subMuscleOverlap,
+                        MainMuscleOverlap = mainMuscleOverlap,
+                        MainMuscleCount = mainMuscleIds.Count,
+                        IsCompound = mainMuscleIds.Count > 1
+                    };
                 })
-                .OrderByDescending(x => x.Overlap)
+                .OrderByDescending(x => x.SubMuscleOverlap)
+                .ThenByDescending(x => x.MainMuscleOverlap)
                 .ThenByDescending(x => x.IsCompound)
                 .ThenByDescending(x => x.MainMuscleCount)
                 .ThenBy(x => Guid.NewGuid())
                 .ToList();
 
             // If there are any with overlap > 0, pick the best one 
-            var bestOverlap = scoredCandidates.FirstOrDefault()?.Overlap ?? 0;
-            var bestCandidates = scoredCandidates.Where(x => x.Overlap == bestOverlap && bestOverlap > 0).ToList();
+            var bestSubOverlap = scoredCandidates.FirstOrDefault()?.SubMuscleOverlap ?? 0;
+            var bestMainOverlap = scoredCandidates.FirstOrDefault()?.MainMuscleOverlap ?? 0;
+            // Prefer sub-muscle match, fallback to main muscle match
+            var bestCandidates = scoredCandidates
+                .Where(x => x.SubMuscleOverlap == bestSubOverlap && bestSubOverlap > 0)
+                .ToList();
+            if (bestCandidates.Count == 0 && bestMainOverlap > 0)
+            {
+                bestCandidates = scoredCandidates.Where(x => x.MainMuscleOverlap == bestMainOverlap && bestMainOverlap > 0).ToList();
+            }
             if (bestCandidates.Count > 0)
             {
                 var chosen = bestCandidates.First();
@@ -1126,7 +1186,7 @@ namespace MyApiProject.Services
                         ExerciseTypeName = chosen.Exercise.ExerciseType?.ExerciseTypeName,
                         Sets = FitnessGoalMapping.GetRecommendedSetsForGoal(userFitnessGoal, userSkillLevelString).ToString(),
                         Reps = FitnessGoalMapping.GetRecommendedRepsForGoalString(userFitnessGoal, userSkillLevelString),
-                        Notes = "Smart replacement based on main muscle overlap.",
+                        Notes = bestSubOverlap > 0 ? "Smart replacement based on sub-muscle overlap." : "Smart replacement based on main muscle overlap.",
                         MainMusclesTargeted = chosen.Exercise.ExerciseMuscleTargets
                             .Where(emt => emt.IsMainMuscle)
                             .Select(emt => emt.MuscleGroup?.MuscleGroupName)
@@ -1139,10 +1199,11 @@ namespace MyApiProject.Services
 
             if (scoredCandidates.Count >= 2)
             {
-                var grouped = scoredCandidates.GroupBy(x => x.Overlap).OrderByDescending(g => g.Key).ToList();
-                if (grouped.Count > 1)
+                // Try to find the second-best by sub-muscle overlap first
+                var groupedSub = scoredCandidates.GroupBy(x => x.SubMuscleOverlap).OrderByDescending(g => g.Key).ToList();
+                if (groupedSub.Count > 1)
                 {
-                    var secondBestGroup = grouped[1].ToList();
+                    var secondBestGroup = groupedSub[1].ToList();
                     var chosen = secondBestGroup.OrderBy(x => Guid.NewGuid()).First();
                     return new List<ExerciseDTO> {
                         new ExerciseDTO {
@@ -1153,7 +1214,7 @@ namespace MyApiProject.Services
                             ExerciseTypeName = chosen.Exercise.ExerciseType?.ExerciseTypeName,
                             Sets = FitnessGoalMapping.GetRecommendedSetsForGoal(userFitnessGoal, userSkillLevelString).ToString(),
                             Reps = FitnessGoalMapping.GetRecommendedRepsForGoalString(userFitnessGoal, userSkillLevelString),
-                            Notes = "Second-best smart replacement.",
+                            Notes = "Second-best smart replacement (sub-muscle).",
                             MainMusclesTargeted = chosen.Exercise.ExerciseMuscleTargets
                                 .Where(emt => emt.IsMainMuscle)
                                 .Select(emt => emt.MuscleGroup?.MuscleGroupName)
@@ -1163,7 +1224,33 @@ namespace MyApiProject.Services
                         }
                     };
                 }
-                else
+                // Otherwise, try by main muscle overlap
+                var groupedMain = scoredCandidates.GroupBy(x => x.MainMuscleOverlap).OrderByDescending(g => g.Key).ToList();
+                if (groupedMain.Count > 1)
+                {
+                    var secondBestGroup = groupedMain[1].ToList();
+                    var chosen = secondBestGroup.OrderBy(x => Guid.NewGuid()).First();
+                    return new List<ExerciseDTO> {
+                        new ExerciseDTO {
+                            ExerciseId = chosen.Exercise.ExerciseId,
+                            Name = chosen.Exercise.ExerciseName,
+                            VideoLink = chosen.Exercise.VideoLinks,
+                            SkillLevelName = chosen.Exercise.SkillLevel?.LevelName,
+                            ExerciseTypeName = chosen.Exercise.ExerciseType?.ExerciseTypeName,
+                            Sets = FitnessGoalMapping.GetRecommendedSetsForGoal(userFitnessGoal, userSkillLevelString).ToString(),
+                            Reps = FitnessGoalMapping.GetRecommendedRepsForGoalString(userFitnessGoal, userSkillLevelString),
+                            Notes = "Second-best smart replacement (main muscle).",
+                            MainMusclesTargeted = chosen.Exercise.ExerciseMuscleTargets
+                                .Where(emt => emt.IsMainMuscle)
+                                .Select(emt => emt.MuscleGroup?.MuscleGroupName)
+                                .Where(name => !string.IsNullOrEmpty(name))
+                                .Distinct()
+                                .ToList()
+                        }
+                    };
+                }
+                // Fallback: just pick the next candidate
+                if (scoredCandidates.Count > 1)
                 {
                     var chosen = scoredCandidates[1];
                     return new List<ExerciseDTO> {
@@ -1175,7 +1262,7 @@ namespace MyApiProject.Services
                             ExerciseTypeName = chosen.Exercise.ExerciseType?.ExerciseTypeName,
                             Sets = FitnessGoalMapping.GetRecommendedSetsForGoal(userFitnessGoal, userSkillLevelString).ToString(),
                             Reps = FitnessGoalMapping.GetRecommendedRepsForGoalString(userFitnessGoal, userSkillLevelString),
-                            Notes = "Second-best smart replacement.",
+                            Notes = "Second-best smart replacement (fallback).",
                             MainMusclesTargeted = chosen.Exercise.ExerciseMuscleTargets
                                 .Where(emt => emt.IsMainMuscle)
                                 .Select(emt => emt.MuscleGroup?.MuscleGroupName)
