@@ -49,6 +49,12 @@ const BoltIcon = ({ className = "w-6 h-6" }) => (
         <path fillRule="evenodd" d="M11.97 2.25A.75.75 0 0 0 11.25 3v7.5H4.872a.75.75 0 0 0-.547 1.284L11.75 21.75a.75.75 0 0 0 1.054-.364l1.5-4.5a.75.75 0 0 0 .023-.09l.343-1.715.009-.044a.75.75 0 0 1 .585-.56l1.92-.41L21.75 14.25a.75.75 0 0 0 .364-1.054l-9-12a.75.75 0 0 0-.844-.946Z" clipRule="evenodd" />
     </svg>
 );
+// New icon for Smart Change
+const LightBulbIcon = ({ className = "w-6 h-6" }) => (
+    <svg className={className} fill="currentColor" viewBox="0 0 24 24">
+        <path fillRule="evenodd" d="M12 2.25a.75.75 0 0 1 .75.75v.75a.75.75 0 0 1-1.5 0V3a.75.75 0 0 1 .75-.75ZM7.5 5.25a.75.75 0 0 1 .75-.75h.75a.75.75 0 0 1 0 1.5H8.25a.75.75 0 0 1-.75-.75ZM4.5 10.5a.75.75 0 0 1 .75-.75h.75a.75.75 0 0 1 0 1.5H5.25a.75.75 0 0 1-.75-.75ZM19.5 10.5a.75.75 0 0 1 .75-.75h.75a.75.75 0 0 1 0 1.5h-.75a.75.75 0 0 1-.75-.75ZM17.25 5.25a.75.75 0 0 1 .75-.75h.75a.75.75 0 0 1 0 1.5h-.75a.75.75 0 0 1-.75-.75ZM12 10.5a.75.75 0 0 1 .75-.75h.75a.75.75 0 0 1 0 1.5H12a.75.75 0 0 1-.75-.75Zm-4.72 8.78a.75.75 0 0 1 1.06-1.06L12 20.06l4.22-4.22a.75.75 0 1 1 1.06 1.06l-4.75 4.75a.75.75 0 0 1-1.06 0L7.28 19.28ZM12 6a6 6 0 1 0 0 12 6 6 0 0 0 0-12Z" clipRule="evenodd" />
+    </svg>
+);
 
 
 // Utility function
@@ -165,6 +171,8 @@ const WorkoutPlannerPage = (): JSX.Element => {
     const [selectedWorkout, setSelectedWorkout] = useState<WorkoutDay | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
+    const [smartChangeLoadingId, setSmartChangeLoadingId] = useState<number | null>(null);
+
 
     useEffect(() => {
         AOS.init({ duration: 1000, once: true, easing: 'ease-out-cubic' });
@@ -181,7 +189,6 @@ const WorkoutPlannerPage = (): JSX.Element => {
             if (!backendUrl) { throw new Error("Backend URL is not configured."); }
 
 
-// API expects: { WorkoutDays, Goal, Level } (PascalCase)
 const apiUrl = `${backendUrl.replace(/\/?$/, '')}/api/Workout/generate-plan`;
 const response = await fetch(apiUrl, {
     method: 'POST',
@@ -209,6 +216,91 @@ const response = await fetch(apiUrl, {
             setError(err instanceof Error ? err.message : "An unknown error occurred.");
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    const handleSmartChange = async (exerciseId: number, exerciseName?: string) => {
+        setSmartChangeLoadingId(exerciseId);
+        setError(null);
+        try {
+            const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+            if (!backendUrl) { throw new Error("Backend URL is not configured."); }
+
+            // Find the current exercise object and workout context
+            const currentExercises = selectedWorkout?.exercises || [];
+            const workoutPlanArray = workoutPlan?.workoutDays || [];
+
+            // Find the user's skill level id (if available, else fallback to 2 = Intermediate)
+            let userSkillLevelId = 2;
+            const skillLevelMap: Record<string, number> = { Beginner: 1, Intermediate: 2, Advanced: 3 };
+            if (skillLevelMap[level]) userSkillLevelId = skillLevelMap[level];
+
+            // Find the exercise name if not provided
+            let exerciseToChangeName = exerciseName;
+            if (!exerciseToChangeName) {
+                const found = currentExercises.find(e => e.exerciseId === exerciseId);
+                if (found) exerciseToChangeName = found.name;
+            }
+
+            const apiUrl = `${backendUrl.replace(/\/?$/, '')}/api/Workout/smart-change`;
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    ExerciseToChangeId: exerciseId,
+                    ExerciseToChangeName: exerciseToChangeName,
+                    UserSkillLevelId: userSkillLevelId,
+                    UserFitnessGoal: goal,
+                    CurrentWorkoutExercises: currentExercises
+                }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to smart change exercise.');
+            }
+
+            const smartChangeResponse = await response.json();
+            const suggestions = smartChangeResponse.suggestions || smartChangeResponse.Suggestions;
+            if (!suggestions || suggestions.length === 0) {
+                throw new Error('No smart change suggestions returned.');
+            }
+            const newExercise = suggestions[0];
+
+            setWorkoutPlan(prevPlan => {
+                if (!prevPlan) return null;
+                const updatedWorkoutDays = prevPlan.workoutDays.map(day => {
+                    if (day.workoutName === selectedWorkout?.workoutName) {
+                        return {
+                            ...day,
+                            exercises: day.exercises.map(ex =>
+                                ex.exerciseId === exerciseId ? newExercise : ex
+                            )
+                        };
+                    }
+                    return day;
+                });
+                return { workoutDays: updatedWorkoutDays };
+            });
+
+            setSelectedWorkout(prevSelected => {
+                if (!prevSelected) return null;
+                if (prevSelected.workoutName === selectedWorkout?.workoutName) {
+                    return {
+                        ...prevSelected,
+                        exercises: prevSelected.exercises.map(ex =>
+                            ex.exerciseId === exerciseId ? newExercise : ex
+                        )
+                    };
+                }
+                return prevSelected;
+            });
+
+        } catch (err) {
+            console.error("Error performing smart change:", err);
+            setError(err instanceof Error ? err.message : "An unknown error occurred during smart change.");
+        } finally {
+            setSmartChangeLoadingId(null);
         }
     };
 
@@ -361,12 +453,19 @@ const response = await fetch(apiUrl, {
                                                                 ))}
                                                             </div>
                                                         </div>
-                                                        {exercise.videoLink && (
-                                                            <a href={exercise.videoLink} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 transition-colors duration-200">
-                                                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M21 8.25c0-2.485-2.015-4.5-4.5-4.5S12 5.765 12 8.25V9h.75A.75.75 0 0 1 13.5 9.75v3.5a.75.75 0 0 1-.75.75h-.75v.75c0 2.485-2.015 4.5-4.5 4.5S3 17.235 3 14.75V14H2.25a.75.75 0 0 1-.75-.75v-3.5a.75.75 0 0 1 .75-.75h.75V8.25c0-2.485-2.015-4.5-4.5-4.5S0 5.765 0 8.25V14.5c0 2.485 2.015 4.5 4.5 4.5S9 17.235 9 14.75V14h.75a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-.75.75H9v.75c0 2.485 2.015 4.5 4.5 4.5s4.5-2.015 4.5-4.5V14.5c0-2.485 2.015-4.5 4.5-4.5s4.5 2.015 4.5 4.5v-6.25c0-2.485-2.015-4.5-4.5-4.5ZM9 8.25h.75V9H9V8.25Z" /></svg>
-                                                                Watch Video
-                                                            </a>
-                                                        )}
+                                                        {/* Smart Change Button */}
+                                                        <button
+                                                            onClick={() => handleSmartChange(exercise.exerciseId)}
+                                                            disabled={smartChangeLoadingId === exercise.exerciseId}
+                                                            className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                        >
+                                                            {smartChangeLoadingId === exercise.exerciseId ? (
+                                                                <LoadingIcon className="w-4 h-4" />
+                                                            ) : (
+                                                                <LightBulbIcon className="w-4 h-4" />
+                                                            )}
+                                                            {smartChangeLoadingId === exercise.exerciseId ? 'Changing...' : 'Smart Change'}
+                                                        </button>
                                                     </motion.li>
                                                 ))}
                                             </ul>
