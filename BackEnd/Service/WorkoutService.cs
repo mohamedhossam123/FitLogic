@@ -714,6 +714,7 @@ namespace MyApiProject.Services
             string exerciseToChangeName,
             int userSkillLevelId,
             string userFitnessGoalString,
+            string userSkillLevelString,
             List<ExerciseDTO> currentWorkoutExercises,
             List<WorkoutTypeDTO> fullWorkoutPlan = null)
         {
@@ -842,7 +843,7 @@ namespace MyApiProject.Services
                 .ThenBy(x => Guid.NewGuid())
                 .ToList();
 
-            // If there are any with overlap > 0, pick the best one (not the second-best, since user wants the most relevant)
+            // If there are any with overlap > 0, pick the best one 
             var bestOverlap = scoredCandidates.FirstOrDefault()?.Overlap ?? 0;
             var bestCandidates = scoredCandidates.Where(x => x.Overlap == bestOverlap && bestOverlap > 0).ToList();
             if (bestCandidates.Count > 0)
@@ -855,8 +856,8 @@ namespace MyApiProject.Services
                         VideoLink = chosen.Exercise.VideoLinks,
                         SkillLevelName = chosen.Exercise.SkillLevel?.LevelName,
                         ExerciseTypeName = chosen.Exercise.ExerciseType?.ExerciseTypeName,
-                        Sets = "Dynamic based on goal",
-                        Reps = FitnessGoalMapping.GetRecommendedRepsForGoal(userFitnessGoal).Description,
+                        Sets = FitnessGoalMapping.GetRecommendedSetsForGoal(userFitnessGoal, userSkillLevelString).ToString(),
+                        Reps = FitnessGoalMapping.GetRecommendedRepsForGoalString(userFitnessGoal, userSkillLevelString),
                         Notes = "Smart replacement based on main muscle overlap.",
                         MainMusclesTargeted = chosen.Exercise.ExerciseMuscleTargets
                             .Where(emt => emt.IsMainMuscle)
@@ -882,8 +883,8 @@ namespace MyApiProject.Services
                             VideoLink = chosen.Exercise.VideoLinks,
                             SkillLevelName = chosen.Exercise.SkillLevel?.LevelName,
                             ExerciseTypeName = chosen.Exercise.ExerciseType?.ExerciseTypeName,
-                            Sets = "Dynamic based on goal",
-                            Reps = $"{FitnessGoalMapping.GetRecommendedRepsForGoal(userFitnessGoal).MinReps}-{FitnessGoalMapping.GetRecommendedRepsForGoal(userFitnessGoal).MaxReps}",
+                            Sets = FitnessGoalMapping.GetRecommendedSetsForGoal(userFitnessGoal, userSkillLevelString).ToString(),
+                            Reps = FitnessGoalMapping.GetRecommendedRepsForGoalString(userFitnessGoal, userSkillLevelString),
                             Notes = "Second-best smart replacement.",
                             MainMusclesTargeted = chosen.Exercise.ExerciseMuscleTargets
                                 .Where(emt => emt.IsMainMuscle)
@@ -904,8 +905,8 @@ namespace MyApiProject.Services
                             VideoLink = chosen.Exercise.VideoLinks,
                             SkillLevelName = chosen.Exercise.SkillLevel?.LevelName,
                             ExerciseTypeName = chosen.Exercise.ExerciseType?.ExerciseTypeName,
-                            Sets = "Dynamic based on goal",
-                            Reps = $"{FitnessGoalMapping.GetRecommendedRepsForGoal(userFitnessGoal).MinReps}-{FitnessGoalMapping.GetRecommendedRepsForGoal(userFitnessGoal).MaxReps}",
+                            Sets = FitnessGoalMapping.GetRecommendedSetsForGoal(userFitnessGoal, userSkillLevelString).ToString(),
+                            Reps = FitnessGoalMapping.GetRecommendedRepsForGoalString(userFitnessGoal, userSkillLevelString),
                             Notes = "Second-best smart replacement.",
                             MainMusclesTargeted = chosen.Exercise.ExerciseMuscleTargets
                                 .Where(emt => emt.IsMainMuscle)
@@ -928,8 +929,8 @@ namespace MyApiProject.Services
                         VideoLink = chosen.Exercise.VideoLinks,
                         SkillLevelName = chosen.Exercise.SkillLevel?.LevelName,
                         ExerciseTypeName = chosen.Exercise.ExerciseType?.ExerciseTypeName,
-                        Sets = "Dynamic based on goal",
-                        Reps = $"{FitnessGoalMapping.GetRecommendedRepsForGoal(userFitnessGoal).MinReps}-{FitnessGoalMapping.GetRecommendedRepsForGoal(userFitnessGoal).MaxReps}",
+                        Sets = FitnessGoalMapping.GetRecommendedSetsForGoal(userFitnessGoal, userSkillLevelString).ToString(),
+                        Reps = FitnessGoalMapping.GetRecommendedRepsForGoalString(userFitnessGoal, userSkillLevelString),
                         Notes = "Only one smart replacement found.",
                         MainMusclesTargeted = chosen.Exercise.ExerciseMuscleTargets
                             .Where(emt => emt.IsMainMuscle)
@@ -963,14 +964,14 @@ namespace MyApiProject.Services
                         VideoLink = chosen.VideoLinks,
                         SkillLevelName = chosen.SkillLevel?.LevelName,
                         ExerciseTypeName = chosen.ExerciseType?.ExerciseTypeName,
-                        Sets = "Dynamic based on goal",
-                        Reps = FitnessGoalMapping.GetRecommendedRepsForGoal(userFitnessGoal).Description,
+                        Sets = FitnessGoalMapping.GetRecommendedSetsForGoal(userFitnessGoal, userSkillLevelString).ToString(),
+                        Reps = FitnessGoalMapping.GetRecommendedRepsForGoalString(userFitnessGoal, userSkillLevelString),
                         Notes = "Fallback smart replacement."
                     }
                 };
             }
 
-            // 7. If still nothing, return any exercise at all (last resort)
+            // 7. If still nothing, return any exercise at all 
             var lastResort2 = await _context.Exercises
                 .Include(e => e.ExerciseMuscleTargets)
                     .ThenInclude(emt => emt.MuscleGroup)
@@ -990,19 +991,44 @@ namespace MyApiProject.Services
                         VideoLink = chosen.VideoLinks,
                         SkillLevelName = chosen.SkillLevel?.LevelName,
                         ExerciseTypeName = chosen.ExerciseType?.ExerciseTypeName,
-                        Sets = "Dynamic based on goal",
-                        Reps = FitnessGoalMapping.GetRecommendedRepsForGoal(userFitnessGoal).Description,
+                        Sets = FitnessGoalMapping.GetRecommendedSetsForGoal(userFitnessGoal, userSkillLevelString).ToString(),
+                        Reps = FitnessGoalMapping.GetRecommendedRepsForGoalString(userFitnessGoal, userSkillLevelString),
                         Notes = "Last resort smart replacement."
                     }
                 };
             }
-
             return new List<ExerciseDTO>();
         }
 
-        async Task<List<ExerciseDTO>> IWorkoutService.GetSmartExerciseReplacement(int exerciseToChangeId, string exerciseToChangeName, int userSkillLevelId, string userFitnessGoalString, List<ExerciseDTO> currentWorkoutExercises, List<WorkoutTypeDTO> fullWorkoutPlan)
+        async Task<List<ExerciseDTO>> IWorkoutService.GetSmartExerciseReplacement(
+            int exerciseToChangeId,
+            string exerciseToChangeName,
+            int userSkillLevelId,
+            string userFitnessGoalString,
+            List<ExerciseDTO> currentWorkoutExercises,
+            List<WorkoutTypeDTO> fullWorkoutPlan)
         {
-            return await GetSmartExerciseReplacement(exerciseToChangeId, exerciseToChangeName, userSkillLevelId, userFitnessGoalString, currentWorkoutExercises, fullWorkoutPlan);
+            // Try to get the user's skill level string from the current workout exercises, fallback to "Intermediate" if not found
+            string userSkillLevelString = null;
+            if (currentWorkoutExercises != null && currentWorkoutExercises.Any())
+            {
+                // Use the highest skill level found in the current workout, or the first non-null
+                userSkillLevelString = currentWorkoutExercises
+                    .Select(e => e.SkillLevelName)
+                    .FirstOrDefault(s => !string.IsNullOrEmpty(s));
+            }
+            if (string.IsNullOrEmpty(userSkillLevelString))
+            {
+                userSkillLevelString = "Intermediate"; // fallback default
+            }
+            return await GetSmartExerciseReplacement(
+                exerciseToChangeId,
+                exerciseToChangeName,
+                userSkillLevelId,
+                userFitnessGoalString,
+                userSkillLevelString,
+                currentWorkoutExercises,
+                fullWorkoutPlan);
         }
 
         public string GetRecommendedRepsDescription(string userFitnessGoalString)

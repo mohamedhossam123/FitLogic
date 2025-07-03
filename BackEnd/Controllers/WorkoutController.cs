@@ -1,6 +1,4 @@
 using Microsoft.AspNetCore.Mvc;
-using System.Threading.Tasks;
-using System.Linq;
 
 namespace MyApiProject.Controllers
 {
@@ -66,12 +64,9 @@ namespace MyApiProject.Controllers
                 return NotFound("No suitable replacement exercises found based on your criteria. This could be due to no matching exercises, or all suitable exercises targeting already-hit muscle groups.");
             }
 
-            var recommendedRepsDescription = _workoutService.GetRecommendedRepsDescription(request.UserFitnessGoal);
-
             return Ok(new SmartChangeResponseDto
             {
                 Suggestions = suggestedExercises,
-                RecommendedRepsDescription = recommendedRepsDescription
             });
         }
     }

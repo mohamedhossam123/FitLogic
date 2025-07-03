@@ -47,7 +47,33 @@ namespace MyApiProject.Services
                 _ => new RecommendedReps { MinReps = 8, MaxReps = 12, Description = "General fitness (8-12 reps)" }
             };
         }
+        public static int GetRecommendedSetsForGoal(FitnessGoal goal, string userLevel = null)
+        {
+            // If building muscle and intermediate or above, use 2 sets
+            if (goal == FitnessGoal.BuildMuscle && !string.IsNullOrEmpty(userLevel) &&
+                (userLevel.Equals("Intermediate", StringComparison.OrdinalIgnoreCase) || userLevel.Equals("Advanced", StringComparison.OrdinalIgnoreCase)))
+            {
+                return 2;
+            }
+            return goal switch
+            {
+                FitnessGoal.BuildStrength => 5,
+                FitnessGoal.BuildMuscle => 4,
+                FitnessGoal.LossWeight => 3,
+                FitnessGoal.MaintainWeight => 3,
+                _ => 3
+            };
+        }
 
+        public static string GetRecommendedRepsForGoalString(FitnessGoal goal, string userLevel = null)
+        {
+            if (goal == FitnessGoal.BuildMuscle && !string.IsNullOrEmpty(userLevel) &&
+                (userLevel.Equals("Intermediate", StringComparison.OrdinalIgnoreCase) || userLevel.Equals("Advanced", StringComparison.OrdinalIgnoreCase)))
+            {
+                return "to failure (max 10)";
+            }
+            return GetRecommendedRepsForGoal(goal).Description;
+        }
         public static FitnessGoal ParseFitnessGoal(string goalString)
         {
             var normalized = goalString.Replace(" ", string.Empty).ToLowerInvariant();
