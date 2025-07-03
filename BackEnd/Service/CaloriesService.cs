@@ -51,7 +51,6 @@ namespace MyApiProject.Services
             });
 
             float totalCalories;
-            // Normalize goal to lowercase for robust enum handling
             string goal = request.Goal?.Trim().ToLowerInvariant(); 
             switch (goal)
             {

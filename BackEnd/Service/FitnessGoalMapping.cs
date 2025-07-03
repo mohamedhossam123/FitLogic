@@ -8,6 +8,7 @@ namespace MyApiProject.Services
         public const string HypertrophyTypeName = "Hypertrophy"; 
         public const string EnduranceTypeName = "Endurance"; 
         public const string CoreTypeName = "Core"; 
+        public const string BodyweightTypeName = "Bodyweight"; 
 
         public enum FitnessGoal
         {
@@ -29,9 +30,9 @@ namespace MyApiProject.Services
             return goal switch
             {
                 FitnessGoal.BuildStrength => new List<string> { StrengthTypeName }, 
-                FitnessGoal.BuildMuscle => new List<string> { StrengthTypeName, HypertrophyTypeName }, 
-                FitnessGoal.LossWeight => new List<string> { StrengthTypeName, CardioTypeName, EnduranceTypeName }, 
-                FitnessGoal.MaintainWeight => new List<string> { StrengthTypeName, CardioTypeName, EnduranceTypeName }, 
+                FitnessGoal.BuildMuscle => new List<string> { StrengthTypeName, HypertrophyTypeName, BodyweightTypeName }, 
+                FitnessGoal.LossWeight => new List<string> { CardioTypeName, EnduranceTypeName, BodyweightTypeName }, 
+                FitnessGoal.MaintainWeight => new List<string> { StrengthTypeName, CardioTypeName, EnduranceTypeName, BodyweightTypeName }, 
                 _ => new List<string>() 
             };
         }
@@ -49,7 +50,6 @@ namespace MyApiProject.Services
         }
         public static int GetRecommendedSetsForGoal(FitnessGoal goal, string userLevel = null)
         {
-            // If building muscle and intermediate or above, use 2 sets
             if (goal == FitnessGoal.BuildMuscle && !string.IsNullOrEmpty(userLevel) &&
                 (userLevel.Equals("Intermediate", StringComparison.OrdinalIgnoreCase) || userLevel.Equals("Advanced", StringComparison.OrdinalIgnoreCase)))
             {

@@ -18,41 +18,49 @@ namespace MyApiProject.Services
 
         private void InitializeDefaultWorkoutExercises()
         {
+            _defaultWorkoutExercises.Clear();
             _defaultWorkoutExercises.Add("Beginner Lose Fat Day 1", new List<ExerciseDTO> {
                 new ExerciseDTO { Name = "Bodyweight Squats", Sets = "3", Reps = "15-20", Notes = "" },
                 new ExerciseDTO { Name = "Push-ups", Sets = "3", Reps = "10-15", Notes = "Knees if needed" },
                 new ExerciseDTO { Name = "Jumping Jacks", Sets = "3", Reps = "30 sec", Notes = "" },
-                new ExerciseDTO { Name = "Plank", Sets = "3", Reps = "30 sec", Notes = "Core stability" }
+                new ExerciseDTO { Name = "Plank", Sets = "3", Reps = "30 sec", Notes = "Core stability" },
+                new ExerciseDTO { Name = "Bodyweight Lunges", Sets = "3", Reps = "12-15 per leg", Notes = "" },
+                new ExerciseDTO { Name = "Bodyweight Rows", Sets = "3", Reps = "10-12", Notes = "Use a low bar or TRX" }
             });
             _defaultWorkoutExercises.Add("Beginner Lose Fat Day 2", new List<ExerciseDTO> {
                 new ExerciseDTO { Name = "Walking Lunges", Sets = "3", Reps = "12-15 per leg", Notes = "" },
                 new ExerciseDTO { Name = "Incline Push-ups", Sets = "3", Reps = "10-15", Notes = "" },
                 new ExerciseDTO { Name = "Mountain Climbers", Sets = "3", Reps = "30 sec", Notes = "" },
-                new ExerciseDTO { Name = "Glute Bridge", Sets = "3", Reps = "15-20", Notes = "" }
+                new ExerciseDTO { Name = "Glute Bridge", Sets = "3", Reps = "15-20", Notes = "" },
+                new ExerciseDTO { Name = "Bodyweight Calf Raises", Sets = "3", Reps = "15-20", Notes = "" }
             });
             _defaultWorkoutExercises.Add("Beginner Lose Fat Day 3", new List<ExerciseDTO> {
                 new ExerciseDTO { Name = "Step-ups", Sets = "3", Reps = "12-15 per leg", Notes = "" },
                 new ExerciseDTO { Name = "Shoulder Taps", Sets = "3", Reps = "20", Notes = "Core and shoulders" },
                 new ExerciseDTO { Name = "Standing Calf Raises", Sets = "3", Reps = "15-20", Notes = "" },
-                new ExerciseDTO { Name = "Superman", Sets = "3", Reps = "15", Notes = "Lower back" }
+                new ExerciseDTO { Name = "Superman", Sets = "3", Reps = "15", Notes = "Lower back" },
+                new ExerciseDTO { Name = "Bodyweight Glute Bridge", Sets = "3", Reps = "15-20", Notes = "" }
             });
             _defaultWorkoutExercises.Add("Beginner Lose Fat Day 4", new List<ExerciseDTO> {
                 new ExerciseDTO { Name = "Reverse Lunges", Sets = "3", Reps = "12-15 per leg", Notes = "" },
                 new ExerciseDTO { Name = "Bench Dips", Sets = "3", Reps = "10-12", Notes = "Triceps" },
                 new ExerciseDTO { Name = "Standing Dumbbell Curl", Sets = "3", Reps = "12-15", Notes = "" },
-                new ExerciseDTO { Name = "Side Plank", Sets = "3", Reps = "20 sec per side", Notes = "" }
+                new ExerciseDTO { Name = "Side Plank", Sets = "3", Reps = "20 sec per side", Notes = "" },
+                new ExerciseDTO { Name = "Bodyweight Step-ups", Sets = "3", Reps = "12-15 per leg", Notes = "" }
             });
             _defaultWorkoutExercises.Add("Beginner Lose Fat Day 5", new List<ExerciseDTO> {
                 new ExerciseDTO { Name = "Goblet Squat", Sets = "3", Reps = "12-15", Notes = "" },
                 new ExerciseDTO { Name = "Standing Shoulder Press", Sets = "3", Reps = "10-12", Notes = "" },
                 new ExerciseDTO { Name = "Mountain Climbers", Sets = "3", Reps = "20", Notes = "" },
-                new ExerciseDTO { Name = "Bird Dog", Sets = "3", Reps = "10 per side", Notes = "Core stability" }
+                new ExerciseDTO { Name = "Bird Dog", Sets = "3", Reps = "10 per side", Notes = "Core stability" },
+                new ExerciseDTO { Name = "Bodyweight Hip Thrust", Sets = "3", Reps = "15-20", Notes = "" }
             });
             _defaultWorkoutExercises.Add("Beginner Lose Fat Day 6", new List<ExerciseDTO> {
                 new ExerciseDTO { Name = "Split Squat", Sets = "3", Reps = "12-15 per leg", Notes = "" },
                 new ExerciseDTO { Name = "Push-ups", Sets = "3", Reps = "10-15", Notes = "" },
                 new ExerciseDTO { Name = "Standing Dumbbell Lateral Raise", Sets = "3", Reps = "12-15", Notes = "" },
-                new ExerciseDTO { Name = "Crunches", Sets = "3", Reps = "15-20", Notes = "" }
+                new ExerciseDTO { Name = "Crunches", Sets = "3", Reps = "15-20", Notes = "" },
+                new ExerciseDTO { Name = "Bodyweight Plank", Sets = "3", Reps = "30 sec", Notes = "" }
             });
 
             // Intermediate
