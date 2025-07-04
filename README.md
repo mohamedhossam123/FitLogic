@@ -47,7 +47,7 @@ FitLogic is designed to solve the problem of cookie-cutter fitness plans by prov
 
 ## 🚀 Demo
 
-<video src="images/fitlogicpreview.mp4" controls width="600"></video>
+{you can find the video in images/fitlogicprivew }
 
 *Watch the video above to see how FitLogic solves the problem of generic fitness plans by providing truly smart, context-aware exercise replacements and personalized workouts. The demo highlights the robust backend logic that ensures every suggestion is anatomically correct, never repeated, and always tailored to the user's needs.*
 
