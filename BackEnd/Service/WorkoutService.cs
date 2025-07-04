@@ -181,7 +181,7 @@ namespace MyApiProject.Services
                 _defaultWorkoutExercises.Add("Full Body C", new List<ExerciseDTO>
             {
                 new ExerciseDTO { Name = "Push Press", Sets = "3", Reps = "6-10", Notes = "Use leg drive" },
-                new ExerciseDTO { Name = "Pull-ups / Assisted Pull-ups", Sets = "3", Reps = "AMRAP", Notes = "" },
+                new ExerciseDTO { Name = "Pull-ups", Sets = "3", Reps = "AMRAP", Notes = "" },
                 new ExerciseDTO { Name = "Dumbbell Bench Press", Sets = "3", Reps = "10-15", Notes = "" },
                 new ExerciseDTO { Name = "Leg Extensions", Sets = "3", Reps = "12-15", Notes = "" },
                 new ExerciseDTO { Name = "Hamstring Curls", Sets = "3", Reps = "12-15", Notes = "" }
@@ -229,7 +229,7 @@ namespace MyApiProject.Services
             });
                 _defaultWorkoutExercises.Add("Pull (Back, Biceps)", new List<ExerciseDTO>
             {
-                new ExerciseDTO { Name = "Pull-ups / Lat Pulldowns", Sets = "2", Reps = "to failure (max 10)", Notes = "" },
+                new ExerciseDTO { Name = "Pull-ups", Sets = "2", Reps = "to failure (max 10)", Notes = "" },
                 new ExerciseDTO { Name = "Barbell Rows", Sets = "2", Reps = "to failure (max 10)", Notes = "" },
                 new ExerciseDTO { Name = "Seated Cable Rows", Sets = "2", Reps = "to failure (max 10)", Notes = "" },
                 new ExerciseDTO { Name = "Face Pulls", Sets = "2", Reps = "to failure (max 10)", Notes = "" },
@@ -1132,22 +1132,39 @@ namespace MyApiProject.Services
                 allowedSkillLevelIds = new List<int> { 1 };
             }
 
-            var allCandidates = await _context.Exercises
-                .Include(e => e.ExerciseMuscleTargets)
-                    .ThenInclude(emt => emt.MuscleGroup)
-                .Include(e => e.ExerciseMuscleTargets)
-                    .ThenInclude(emt => emt.SubMuscle)
-                .Include(e => e.SkillLevel)
-                .Include(e => e.ExerciseType)
-                .Where(e =>
-                    e.ExerciseId != originalExercise.ExerciseId &&
-                    allowedSkillLevelIds.Contains(e.SkillLevelId) &&
-                    targetExerciseTypeIds.Contains(e.ExerciseTypeId)
-                )
-                .ToListAsync();
 
-            //  Data-driven: prioritize exercises with highest main muscle overlap, prefer compound movements
-            // Score all candidates by main muscle overlap with the original
+
+var existingExerciseIds = (currentWorkoutExercises != null)
+    ? new HashSet<int>(currentWorkoutExercises.Select(e => e.ExerciseId ?? 0).Where(id => id > 0))
+    : new HashSet<int>();
+
+var originalMainMuscleGroupIdsSet = new HashSet<int>(originalMainMuscleGroupIds);
+var originalMainSubMuscleIdsSet = new HashSet<int>(originalMainSubMuscleIds);
+var originalMainSubMuscleNamesSet = new HashSet<string>(originalMainSubMuscleNames);
+
+var allCandidates = await _context.Exercises
+    .Include(e => e.ExerciseMuscleTargets)
+        .ThenInclude(emt => emt.MuscleGroup)
+    .Include(e => e.ExerciseMuscleTargets)
+        .ThenInclude(emt => emt.SubMuscle)
+    .Include(e => e.SkillLevel)
+    .Include(e => e.ExerciseType)
+    .Where(e =>
+        e.ExerciseId != originalExercise.ExerciseId &&
+        !existingExerciseIds.Contains(e.ExerciseId) &&
+        allowedSkillLevelIds.Contains(e.SkillLevelId) &&
+        targetExerciseTypeIds.Contains(e.ExerciseTypeId) &&
+        e.ExerciseMuscleTargets.Any(emt =>
+            (emt.IsMainMuscle &&
+                (originalMainMuscleGroupIdsSet.Contains(emt.MuscleGroupId)
+                 || (emt.SubMuscleId != 0 && originalMainSubMuscleIdsSet.Contains(emt.SubMuscleId))
+                 || (emt.SubMuscle != null && originalMainSubMuscleNamesSet.Contains(emt.SubMuscle.SubMuscleName.Trim().ToLower()))
+                )
+            )
+        )
+    )
+    .ToListAsync();
+
             var scoredCandidates = allCandidates
                 .Select(e => {
                     var mainTargets = e.ExerciseMuscleTargets.Where(emt => emt.IsMainMuscle).ToList();
@@ -1155,11 +1172,10 @@ namespace MyApiProject.Services
                     var subMuscleIds = mainTargets.Select(emt => emt.SubMuscleId).Distinct().ToList();
                     var subMuscleNames = mainTargets.Select(emt => emt.SubMuscle?.SubMuscleName?.Trim().ToLower())
                         .Where(name => !string.IsNullOrEmpty(name)).Distinct().ToList();
-                    // Overlap scores
+                    
                     int subMuscleIdOverlap = subMuscleIds.Intersect(originalMainSubMuscleIds).Count();
                     int subMuscleNameOverlap = subMuscleNames.Intersect(originalMainSubMuscleNames).Count();
                     int mainMuscleOverlap = mainMuscleIds.Intersect(originalMainMuscleGroupIds).Count();
-                    // Weighted score: prioritize sub-muscle name, then sub-muscle id, then main muscle
                     int weightedScore = subMuscleNameOverlap * 100 + subMuscleIdOverlap * 10 + mainMuscleOverlap;
                     return new {
                         Exercise = e,
@@ -1177,7 +1193,6 @@ namespace MyApiProject.Services
                 .ThenBy(x => Guid.NewGuid())
                 .ToList();
 
-            // If there are any with overlap > 0, pick the best one 
             var bestScore = scoredCandidates.FirstOrDefault()?.WeightedScore ?? 0;
             var bestCandidates = scoredCandidates.Where(x => x.WeightedScore == bestScore && bestScore > 0).ToList();
             if (bestCandidates.Count > 0)

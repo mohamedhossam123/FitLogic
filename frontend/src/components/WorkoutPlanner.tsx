@@ -1,5 +1,5 @@
 // Re-import necessary components and types
-import React, { useState, useEffect, Fragment,useRef } from 'react';
+import React, { useState, useEffect, Fragment, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import AOS from 'aos';
 import 'aos/dist/aos.css';
@@ -52,7 +52,7 @@ const BoltIcon = ({ className = "w-6 h-6" }) => (
 // New icon for Smart Change
 const LightBulbIcon = ({ className = "w-6 h-6" }) => (
     <svg className={className} fill="currentColor" viewBox="0 0 24 24">
-        <path fillRule="evenodd" d="M12 2.25a.75.75 0 0 1 .75.75v.75a.75.75 0 0 1-1.5 0V3a.75.75 0 0 1 .75-.75ZM7.5 5.25a.75.75 0 0 1 .75-.75h.75a.75.75 0 0 1 0 1.5H8.25a.75.75 0 0 1-.75-.75ZM4.5 10.5a.75.75 0 0 1 .75-.75h.75a.75.75 0 0 1 0 1.5H5.25a.75.75 0 0 1-.75-.75ZM19.5 10.5a.75.75 0 0 1 .75-.75h.75a.75.75 0 0 1 0 1.5h-.75a.75.75 0 0 1-.75-.75ZM17.25 5.25a.75.75 0 0 1 .75-.75h.75a.75.75 0 0 1 0 1.5h-.75a.75.75 0 0 1-.75-.75ZM12 10.5a.75.75 0 0 1 .75-.75h.75a.75.75 0 0 1 0 1.5H12a.75.75 0 0 1-.75-.75Zm-4.72 8.78a.75.75 0 0 1 1.06-1.06L12 20.06l4.22-4.22a.75.75 0 1 1 1.06 1.06l-4.75 4.75a.75.75 0 0 1-1.06 0L7.28 19.28ZM12 6a6 6 0 1 0 0 12 6 6 0 0 0 0-12Z" clipRule="evenodd" />
+        <path fillRule="evenodd" d="M12 2.25a.75.75 0 0 1 .75.75v.75a.75.75 0 0 1-1.5 0V3a.75.75 0 0 1 .75-.75ZM7.5 5.25a.75.75 0 0 1 .75-.75h.75a.75.75 0 0 1 0 1.5H8.25a.75.75 0 0 1-.75-.75ZM4.5 10.5a.75.75 0 0 1 .75-.75h.75a.75.75 0 0 1 0 1.5H5.25a.75.75 0 0 1-.75-.75ZM19.5 10.5a.75.75 0 0 1 .75-.75h.75a.75.75 0 0 1 0 1.5h-.75a.75.75 0 0 1-.75-.75ZM17.25 5.25a.75.75 0 0 1 .75-.75h.75a.75.75 0 0 1 0 1.5h-.75a.75.75 0 0 1-.75-.75ZM12 10.5a.75.75 0 0 1 .75-.75h.75a.75.75 0 0 1 0 1.5H12a.75.75 0 0 1-.75-.75ZM7.28 19.28a.75.75 0 0 1 1.06-1.06L12 20.06l4.22-4.22a.75.75 0 1 1 1.06 1.06l-4.75 4.75a.75.75 0 0 1-1.06 0L7.28 19.28ZM12 6a6 6 0 1 0 0 12 6 6 0 0 0 0-12Z" clipRule="evenodd" />
     </svg>
 );
 
@@ -93,18 +93,19 @@ const DaySlider: React.FC<{ value: number; onChange: (value: number) => void; ic
 // CustomDropdown component
 const CustomDropdown: React.FC<{ label: string; options: string[]; value: string; onChange: (value: string) => void; icon: React.ReactNode; }> = ({ label, options, value, onChange, icon }) => {
     const [isOpen, setIsOpen] = useState(false);
-    const dropdownRef = useRef<HTMLDivElement>(null); // Create a ref for the dropdown container
+    const dropdownRef = useRef<HTMLDivElement>(null);
 
-    // Close dropdown when clicking outside
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
-            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node) && isOpen) {
                 setIsOpen(false);
             }
         };
-        document.addEventListener('mousedown', handleClickOutside);
+
+        document.addEventListener('click', handleClickOutside);
+
         return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
+            document.removeEventListener('click', handleClickOutside);
         };
     }, [isOpen]);
 
@@ -114,11 +115,15 @@ const CustomDropdown: React.FC<{ label: string; options: string[]; value: string
     };
 
     return (
-        <div className="relative font-courier-prime w-full" data-aos="fade-up" data-aos-delay="200" ref={dropdownRef}> {/* Attach ref here */}
+        // data-aos attributes removed from here to prevent conflict with Headless UI Transition
+        <div className={cn("relative font-courier-prime w-full", isOpen ? "z-50" : "z-10")} ref={dropdownRef}>
             <label className="text-sm font-medium text-gray-400 mb-2 flex items-center gap-2">
                 {icon} {label}
             </label>
-            <button type="button" onClick={() => setIsOpen(!isOpen)}
+            <button
+                type="button"
+                onClick={() => setIsOpen(!isOpen)}
+                tabIndex={0}
                 className="relative w-full cursor-pointer rounded-xl border border-gray-800 bg-gray-900 py-3 pl-4 pr-10 text-left text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 sm:text-sm"
             >
                 <span className="block truncate">{value}</span>
@@ -126,9 +131,17 @@ const CustomDropdown: React.FC<{ label: string; options: string[]; value: string
                     <ChevronDownIcon className={`h-5 w-5 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
                 </span>
             </button>
-            <Transition show={isOpen} as={Fragment} leave="transition ease-in duration-100" leaveFrom="opacity-100" leaveTo="opacity-0">
-                {/* Changed z-index from 50 to 60 to ensure it's on top of other potential elements like buttons */}
-                <ul className="absolute z-60 mt-1 max-h-60 w-full overflow-auto rounded-md bg-gray-900 border border-gray-800 py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 sm:text-sm">
+            <Transition
+                show={isOpen}
+                as={Fragment}
+                enter="transition ease-out duration-200"
+                enterFrom="opacity-0 translate-y-[-5px]"
+                enterTo="opacity-100 translate-y-0"
+                leave="transition ease-in duration-150"
+                leaveFrom="opacity-100 translate-y-0"
+                leaveTo="opacity-0 translate-y-[-5px]"
+            >
+                <ul className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md bg-gray-900 border border-gray-800 py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 sm:text-sm">
                     {options.map((option) => (
                         <li key={option} onClick={() => handleSelect(option)} className="relative cursor-default select-none py-2 pl-10 pr-4 text-gray-300 hover:bg-purple-600 hover:text-white">
                             {option}
@@ -140,6 +153,7 @@ const CustomDropdown: React.FC<{ label: string; options: string[]; value: string
     );
 };
 
+// Card component
 const Card: React.FC<React.HTMLAttributes<HTMLDivElement>> = ({ className, children, ...props }) => (
     <div className={cn("rounded-2xl border border-gray-800/50 text-white shadow-2xl overflow-hidden relative", className)} {...props}>
         <div className="absolute inset-0 bg-gradient-to-br from-purple-900/20 via-transparent to-blue-900/20 pointer-events-none" />
@@ -161,9 +175,8 @@ const FloatingElements = () => (
     </div>
 );
 
-// Main Page Component
+
 const WorkoutPlannerPage = (): JSX.Element => {
-    // showInputs state is no longer needed as inputs will always be visible
     const [days, setDays] = useState<number>(3);
     const [goal, setGoal] = useState<string>('BuildMuscle');
     const [level, setLevel] = useState<string>('Intermediate');
@@ -172,7 +185,6 @@ const WorkoutPlannerPage = (): JSX.Element => {
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
     const [smartChangeLoadingId, setSmartChangeLoadingId] = useState<number | null>(null);
-
 
     useEffect(() => {
         AOS.init({ duration: 1000, once: true, easing: 'ease-out-cubic' });
@@ -188,18 +200,16 @@ const WorkoutPlannerPage = (): JSX.Element => {
             const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
             if (!backendUrl) { throw new Error("Backend URL is not configured."); }
 
-
-const apiUrl = `${backendUrl.replace(/\/?$/, '')}/api/Workout/generate-plan`;
-const response = await fetch(apiUrl, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-        WorkoutDays: days,
-        Goal: goal,
-        Level: level
-    }),
-});
-
+            const apiUrl = `${backendUrl.replace(/\/?$/, '')}/api/Workout/generate-plan`;
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    WorkoutDays: days,
+                    Goal: goal,
+                    Level: level
+                }),
+            });
 
             if (!response.ok) {
                 const errorData = await response.json();
@@ -228,7 +238,9 @@ const response = await fetch(apiUrl, {
 
             // Find the current exercise object and workout context
             const currentExercises = selectedWorkout?.exercises || [];
-            const workoutPlanArray = workoutPlan?.workoutDays || [];
+            // workoutPlanArray is not used in the current implementation of smartChange API request,
+            // but kept here for context if needed for future API changes.
+            // const workoutPlanArray = workoutPlan?.workoutDays || [];
 
             // Find the user's skill level id (if available, else fallback to 2 = Intermediate)
             let userSkillLevelId = 2;
@@ -336,7 +348,19 @@ const response = await fetch(apiUrl, {
             </section>
 
             <main id="workout-planner" className="relative z-20 -mt-[15vh] md:-mt-[20vh] w-full max-w-4xl">
-                <Card className="mx-auto border-blue-500/30 shadow-2xl shadow-blue-900/40 hover:shadow-blue-900/60 transition-all duration-500">
+                <Card
+                    className="
+                        mx-auto
+                        border-blue-500/30
+                        shadow-2xl
+                        shadow-blue-900/40
+                        hover:shadow-blue-900/60
+                        transition-all
+                        duration-500
+                        min-h-[450px]  {/* Increased from 400px */}
+        md:min-h-[550px]{/* Added: Taller minimum height for medium screens and up */}
+                    "
+                >
                     <CardContent>
                         <h2 className="text-3xl md:text-4xl font-libre-baskerville font-bold text-center text-white mb-8">
                             Create Your Workout Plan
