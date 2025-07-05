@@ -1139,7 +1139,6 @@ var originalMainSubMuscleIdsSet = new HashSet<int>(originalMainSubMuscleIds);
 var originalMainSubMuscleNamesSet = new HashSet<string>(originalMainSubMuscleNames);
 
 
-// EF Core cannot translate SequenceEqual to SQL, so we fetch a broader set and filter in memory
 var allStrictDbCandidates = await _context.Exercises
     .Include(e => e.ExerciseMuscleTargets)
         .ThenInclude(emt => emt.MuscleGroup)
@@ -1160,7 +1159,6 @@ var allStrictDbCandidates = await _context.Exercises
     )
     .ToListAsync();
 
-// Now filter in memory for exact main muscle group match
 var allStrictCandidates = allStrictDbCandidates
     .Where(e =>
         e.ExerciseMuscleTargets.Where(emt => emt.IsMainMuscle).Select(emt => emt.MuscleGroupId).Distinct().OrderBy(x => x)
@@ -1174,7 +1172,6 @@ if (allStrictCandidates.Count > 0)
 }
 else
 {
-    // Fallback: fetch broader set, filter in memory for exact main muscle group match
     var allDbCandidates = await _context.Exercises
         .Include(e => e.ExerciseMuscleTargets)
             .ThenInclude(emt => emt.MuscleGroup)
