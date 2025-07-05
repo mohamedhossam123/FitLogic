@@ -921,7 +921,6 @@ namespace MyApiProject.Services
         dbExercises.AddRange(batchResults);
     }
 
-    // Remove duplicates by ExerciseName (keep first occurrence)
     var dbExerciseMap = dbExercises
         .GroupBy(e => (string)e.ExerciseName, StringComparer.OrdinalIgnoreCase)
         .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
@@ -953,7 +952,6 @@ namespace MyApiProject.Services
         {
             if (dbExerciseMap.TryGetValue(ex.Name, out var dbExercise))
             {
-                // Try to get main muscles from the DB if possible
                 List<string> mainMuscles = new List<string>();
                 int exerciseIdInt = 0;
                 try { exerciseIdInt = (int)dbExercise.ExerciseId; } catch { }
@@ -1031,7 +1029,6 @@ namespace MyApiProject.Services
             }
 
 
-            // Gather all main muscle and sub-muscle info for the original exercise
             var originalMainMuscleTargets = originalExercise.ExerciseMuscleTargets
                 .Where(emt => emt.IsMainMuscle)
                 .ToList();
@@ -1043,7 +1040,6 @@ namespace MyApiProject.Services
                 .Select(emt => emt.SubMuscleId)
                 .Distinct()
                 .ToList();
-            // Also get all main sub-muscle names for more robust matching
             var originalMainSubMuscleNames = originalMainMuscleTargets
                 .Select(emt => emt.SubMuscle?.SubMuscleName?.Trim().ToLower())
                 .Where(name => !string.IsNullOrEmpty(name))
@@ -1142,7 +1138,9 @@ var originalMainMuscleGroupIdsSet = new HashSet<int>(originalMainMuscleGroupIds)
 var originalMainSubMuscleIdsSet = new HashSet<int>(originalMainSubMuscleIds);
 var originalMainSubMuscleNamesSet = new HashSet<string>(originalMainSubMuscleNames);
 
-var allCandidates = await _context.Exercises
+
+// EF Core cannot translate SequenceEqual to SQL, so we fetch a broader set and filter in memory
+var allStrictDbCandidates = await _context.Exercises
     .Include(e => e.ExerciseMuscleTargets)
         .ThenInclude(emt => emt.MuscleGroup)
     .Include(e => e.ExerciseMuscleTargets)
@@ -1155,43 +1153,112 @@ var allCandidates = await _context.Exercises
         allowedSkillLevelIds.Contains(e.SkillLevelId) &&
         targetExerciseTypeIds.Contains(e.ExerciseTypeId) &&
         e.ExerciseMuscleTargets.Any(emt =>
-            (emt.IsMainMuscle &&
-                (originalMainMuscleGroupIdsSet.Contains(emt.MuscleGroupId)
-                 || (emt.SubMuscleId != 0 && originalMainSubMuscleIdsSet.Contains(emt.SubMuscleId))
-                 || (emt.SubMuscle != null && originalMainSubMuscleNamesSet.Contains(emt.SubMuscle.SubMuscleName.Trim().ToLower()))
-                )
-            )
+            emt.IsMainMuscle &&
+            originalMainSubMuscleIdsSet.Contains(emt.SubMuscleId) &&
+            emt.IsMainMuscle == true 
         )
     )
     .ToListAsync();
 
+// Now filter in memory for exact main muscle group match
+var allStrictCandidates = allStrictDbCandidates
+    .Where(e =>
+        e.ExerciseMuscleTargets.Where(emt => emt.IsMainMuscle).Select(emt => emt.MuscleGroupId).Distinct().OrderBy(x => x)
+            .SequenceEqual(originalMainMuscleGroupIds.OrderBy(x => x))
+    ).ToList();
+
+List<Exercises> allCandidates;
+if (allStrictCandidates.Count > 0)
+{
+    allCandidates = allStrictCandidates;
+}
+else
+{
+    // Fallback: fetch broader set, filter in memory for exact main muscle group match
+    var allDbCandidates = await _context.Exercises
+        .Include(e => e.ExerciseMuscleTargets)
+            .ThenInclude(emt => emt.MuscleGroup)
+        .Include(e => e.ExerciseMuscleTargets)
+            .ThenInclude(emt => emt.SubMuscle)
+        .Include(e => e.SkillLevel)
+        .Include(e => e.ExerciseType)
+        .Where(e =>
+            e.ExerciseId != originalExercise.ExerciseId &&
+            !existingExerciseIds.Contains(e.ExerciseId) &&
+            allowedSkillLevelIds.Contains(e.SkillLevelId) &&
+            targetExerciseTypeIds.Contains(e.ExerciseTypeId) &&
+            e.ExerciseMuscleTargets.Any(emt =>
+                (emt.IsMainMuscle &&
+                    (originalMainMuscleGroupIdsSet.Contains(emt.MuscleGroupId)
+                     || (emt.SubMuscleId != 0 && originalMainSubMuscleIdsSet.Contains(emt.SubMuscleId))
+                     || (emt.SubMuscle != null && originalMainSubMuscleNamesSet.Contains(emt.SubMuscle.SubMuscleName.Trim().ToLower()))
+                    )
+                )
+            )
+        )
+        .ToListAsync();
+
+    allCandidates = allDbCandidates
+        .Where(e =>
+            e.ExerciseMuscleTargets.Where(emt => emt.IsMainMuscle).Select(emt => emt.MuscleGroupId).Distinct().OrderBy(x => x)
+                .SequenceEqual(originalMainMuscleGroupIds.OrderBy(x => x))
+        ).ToList();
+}
+
             var scoredCandidates = allCandidates
-                .Select(e => {
-                    var mainTargets = e.ExerciseMuscleTargets.Where(emt => emt.IsMainMuscle).ToList();
-                    var mainMuscleIds = mainTargets.Select(emt => emt.MuscleGroupId).Distinct().ToList();
-                    var subMuscleIds = mainTargets.Select(emt => emt.SubMuscleId).Distinct().ToList();
-                    var subMuscleNames = mainTargets.Select(emt => emt.SubMuscle?.SubMuscleName?.Trim().ToLower())
-                        .Where(name => !string.IsNullOrEmpty(name)).Distinct().ToList();
-                    
-                    int subMuscleIdOverlap = subMuscleIds.Intersect(originalMainSubMuscleIds).Count();
-                    int subMuscleNameOverlap = subMuscleNames.Intersect(originalMainSubMuscleNames).Count();
-                    int mainMuscleOverlap = mainMuscleIds.Intersect(originalMainMuscleGroupIds).Count();
-                    int weightedScore = subMuscleNameOverlap * 100 + subMuscleIdOverlap * 10 + mainMuscleOverlap;
-                    return new {
-                        Exercise = e,
-                        WeightedScore = weightedScore,
-                        SubMuscleNameOverlap = subMuscleNameOverlap,
-                        SubMuscleIdOverlap = subMuscleIdOverlap,
-                        MainMuscleOverlap = mainMuscleOverlap,
-                        MainMuscleCount = mainMuscleIds.Count,
-                        IsCompound = mainMuscleIds.Count > 1
-                    };
-                })
-                .OrderByDescending(x => x.WeightedScore)
-                .ThenByDescending(x => x.IsCompound)
-                .ThenByDescending(x => x.MainMuscleCount)
-                .ThenBy(x => Guid.NewGuid())
-                .ToList();
+    .Select(e => {
+        var mainTargets = e.ExerciseMuscleTargets.Where(emt => emt.IsMainMuscle).ToList();
+        var mainMuscleIds = mainTargets.Select(emt => emt.MuscleGroupId).Distinct().ToList();
+        var subMuscleIds = mainTargets.Select(emt => emt.SubMuscleId).Distinct().ToList();
+        var subMuscleNames = mainTargets.Select(emt => emt.SubMuscle?.SubMuscleName?.Trim().ToLower())
+            .Where(name => !string.IsNullOrEmpty(name)).Distinct().ToList();
+
+
+
+        var originalMainMuscleGroupIdsSetSorted = new HashSet<int>(originalMainMuscleGroupIds);
+        var mainMuscleIdsSetSorted = new HashSet<int>(mainMuscleIds);
+        bool mainMuscleGroupsMatch = originalMainMuscleGroupIdsSetSorted.SetEquals(mainMuscleIdsSetSorted);
+        if (!mainMuscleGroupsMatch) return null;
+
+        int subMuscleIdOverlap = subMuscleIds.Intersect(originalMainSubMuscleIds).Count();
+        int subMuscleNameOverlap = subMuscleNames.Intersect(originalMainSubMuscleNames).Count();
+        int mainMuscleOverlap = mainMuscleIds.Intersect(originalMainMuscleGroupIds).Count();
+
+
+
+
+        int exerciseTypeScore = (e.ExerciseTypeId == originalExercise.ExerciseTypeId) ? 10 : 0;
+        int skillLevelScore = (e.SkillLevelId == originalExercise.SkillLevelId) ? 5 : 0;
+        int compoundScore = (mainMuscleIds.Count > 1) ? 2 : 0;
+        int notRecentlyUsedScore = (!existingExerciseIds.Contains(e.ExerciseId)) ? 3 : 0;
+
+        int weightedScore = subMuscleNameOverlap * 100
+            + subMuscleIdOverlap * 20
+            + mainMuscleOverlap * 10
+            + exerciseTypeScore
+            + skillLevelScore
+            + compoundScore
+            + notRecentlyUsedScore;
+
+        return new {
+            Exercise = e,
+            WeightedScore = weightedScore,
+            SubMuscleNameOverlap = subMuscleNameOverlap,
+            SubMuscleIdOverlap = subMuscleIdOverlap,
+            MainMuscleOverlap = mainMuscleOverlap,
+            MainMuscleCount = mainMuscleIds.Count,
+            IsCompound = mainMuscleIds.Count > 1,
+            ExerciseTypeScore = exerciseTypeScore,
+            SkillLevelScore = skillLevelScore,
+            NotRecentlyUsedScore = notRecentlyUsedScore
+        };
+    })
+    .Where(x => x != null)
+    .OrderByDescending(x => x.WeightedScore)
+    .ThenByDescending(x => x.IsCompound)
+    .ThenByDescending(x => x.MainMuscleCount)
+    .ThenBy(x => Guid.NewGuid())
+    .ToList();
 
             var bestScore = scoredCandidates.FirstOrDefault()?.WeightedScore ?? 0;
             var bestCandidates = scoredCandidates.Where(x => x.WeightedScore == bestScore && bestScore > 0).ToList();
@@ -1221,10 +1288,13 @@ var allCandidates = await _context.Exercises
                     }
                 };
             }
+            if (allCandidates.Count == 0)
+            {
+                return new List<ExerciseDTO>();
+            }
 
             if (scoredCandidates.Count >= 2)
             {
-                // Try to find the second-best by sub-muscle name overlap first
                 var groupedSubName = scoredCandidates.GroupBy(x => x.SubMuscleNameOverlap).OrderByDescending(g => g.Key).ToList();
                 if (groupedSubName.Count > 1)
                 {
@@ -1249,7 +1319,6 @@ var allCandidates = await _context.Exercises
                         }
                     };
                 }
-                // Otherwise, try by sub-muscle id overlap
                 var groupedSubId = scoredCandidates.GroupBy(x => x.SubMuscleIdOverlap).OrderByDescending(g => g.Key).ToList();
                 if (groupedSubId.Count > 1)
                 {
@@ -1274,7 +1343,6 @@ var allCandidates = await _context.Exercises
                         }
                     };
                 }
-                // Otherwise, try by main muscle overlap
                 var groupedMain = scoredCandidates.GroupBy(x => x.MainMuscleOverlap).OrderByDescending(g => g.Key).ToList();
                 if (groupedMain.Count > 1)
                 {
@@ -1299,7 +1367,6 @@ var allCandidates = await _context.Exercises
                         }
                     };
                 }
-                // Fallback: just pick the next candidate
                 if (scoredCandidates.Count > 1)
                 {
                     var chosen = scoredCandidates[1];
@@ -1376,7 +1443,6 @@ var allCandidates = await _context.Exercises
                 };
             }
 
-            // 7. If still nothing, return any exercise at all 
             var lastResort2 = await _context.Exercises
                 .Include(e => e.ExerciseMuscleTargets)
                     .ThenInclude(emt => emt.MuscleGroup)
@@ -1413,18 +1479,16 @@ var allCandidates = await _context.Exercises
             List<ExerciseDTO> currentWorkoutExercises,
             List<WorkoutTypeDTO> fullWorkoutPlan)
         {
-            // Try to get the user's skill level string from the current workout exercises, fallback to "Intermediate" if not found
             string userSkillLevelString = null;
             if (currentWorkoutExercises != null && currentWorkoutExercises.Any())
             {
-                // Use the highest skill level found in the current workout, or the first non-null
                 userSkillLevelString = currentWorkoutExercises
                     .Select(e => e.SkillLevelName)
                     .FirstOrDefault(s => !string.IsNullOrEmpty(s));
             }
             if (string.IsNullOrEmpty(userSkillLevelString))
             {
-                userSkillLevelString = "Intermediate"; // fallback default
+                userSkillLevelString = "Intermediate"; 
             }
             return await GetSmartExerciseReplacement(
                 exerciseToChangeId,

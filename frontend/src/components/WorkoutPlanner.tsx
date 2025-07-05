@@ -1,4 +1,3 @@
-// Re-import necessary components and types
 import React, { useState, useEffect, Fragment, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import AOS from 'aos';
@@ -6,7 +5,7 @@ import 'aos/dist/aos.css';
 import { Transition } from '@headlessui/react';
 import { XMarkIcon, ChevronDownIcon, ArrowPathIcon } from '@heroicons/react/24/solid';
 
-// SVG Icon Components (assuming they are defined in the same file or imported)
+// SVG Icon Components
 const FireIcon = ({ className = "w-6 h-6" }) => (
     <svg className={className} viewBox="0 0 24 24" fill="currentColor">
         <path d="M13.5.67s.74 2.65.74 4.8c0 2.06-1.35 3.73-3.41 3.73-2.07 0-3.63-1.67-3.63-3.73l.03-.36C5.21 7.51 4 10.62 4 14c0 4.42 3.58 8 8 8s8-3.58 8-8C20 8.61 17.41 3.8 13.5.67zM11.71 19c-1.78 0-3.22-1.4-3.22-3.14 0-1.62 1.05-2.76 2.81-3.12 1.77-.36 3.6-1.21 4.62-2.58.39 1.29.59 2.65.59 4.04 0 2.65-2.15 4.8-4.8 4.8z"/>
@@ -49,13 +48,11 @@ const BoltIcon = ({ className = "w-6 h-6" }) => (
         <path fillRule="evenodd" d="M11.97 2.25A.75.75 0 0 0 11.25 3v7.5H4.872a.75.75 0 0 0-.547 1.284L11.75 21.75a.75.75 0 0 0 1.054-.364l1.5-4.5a.75.75 0 0 0 .023-.09l.343-1.715.009-.044a.75.75 0 0 1 .585-.56l1.92-.41L21.75 14.25a.75.75 0 0 0 .364-1.054l-9-12a.75.75 0 0 0-.844-.946Z" clipRule="evenodd" />
     </svg>
 );
-// New icon for Smart Change
 const LightBulbIcon = ({ className = "w-6 h-6" }) => (
     <svg className={className} fill="currentColor" viewBox="0 0 24 24">
         <path fillRule="evenodd" d="M12 2.25a.75.75 0 0 1 .75.75v.75a.75.75 0 0 1-1.5 0V3a.75.75 0 0 1 .75-.75ZM7.5 5.25a.75.75 0 0 1 .75-.75h.75a.75.75 0 0 1 0 1.5H8.25a.75.75 0 0 1-.75-.75ZM4.5 10.5a.75.75 0 0 1 .75-.75h.75a.75.75 0 0 1 0 1.5H5.25a.75.75 0 0 1-.75-.75ZM19.5 10.5a.75.75 0 0 1 .75-.75h.75a.75.75 0 0 1 0 1.5h-.75a.75.75 0 0 1-.75-.75ZM17.25 5.25a.75.75 0 0 1 .75-.75h.75a.75.75 0 0 1 0 1.5h-.75a.75.75 0 0 1-.75-.75ZM12 10.5a.75.75 0 0 1 .75-.75h.75a.75.75 0 0 1 0 1.5H12a.75.75 0 0 1-.75-.75ZM7.28 19.28a.75.75 0 0 1 1.06-1.06L12 20.06l4.22-4.22a.75.75 0 1 1 1.06 1.06l-4.75 4.75a.75.75 0 0 1-1.06 0L7.28 19.28ZM12 6a6 6 0 1 0 0 12 6 6 0 0 0 0-12Z" clipRule="evenodd" />
     </svg>
 );
-
 
 // Utility function
 function cn(...classes: (string | undefined | null | false)[]): string {
@@ -90,7 +87,6 @@ const DaySlider: React.FC<{ value: number; onChange: (value: number) => void; ic
     </div>
 );
 
-// CustomDropdown component
 const CustomDropdown: React.FC<{ label: string; options: string[]; value: string; onChange: (value: string) => void; icon: React.ReactNode; }> = ({ label, options, value, onChange, icon }) => {
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
@@ -101,12 +97,8 @@ const CustomDropdown: React.FC<{ label: string; options: string[]; value: string
                 setIsOpen(false);
             }
         };
-
         document.addEventListener('click', handleClickOutside);
-
-        return () => {
-            document.removeEventListener('click', handleClickOutside);
-        };
+        return () => document.removeEventListener('click', handleClickOutside);
     }, [isOpen]);
 
     const handleSelect = (option: string) => {
@@ -115,7 +107,6 @@ const CustomDropdown: React.FC<{ label: string; options: string[]; value: string
     };
 
     return (
-        // data-aos attributes removed from here to prevent conflict with Headless UI Transition
         <div className={cn("relative font-courier-prime w-full", isOpen ? "z-50" : "z-10")} ref={dropdownRef}>
             <label className="text-sm font-medium text-gray-400 mb-2 flex items-center gap-2">
                 {icon} {label}
@@ -153,7 +144,6 @@ const CustomDropdown: React.FC<{ label: string; options: string[]; value: string
     );
 };
 
-// Card component
 const Card: React.FC<React.HTMLAttributes<HTMLDivElement>> = ({ className, children, ...props }) => (
     <div className={cn("rounded-2xl border border-gray-800/50 text-white shadow-2xl overflow-hidden relative", className)} {...props}>
         <div className="absolute inset-0 bg-gradient-to-br from-purple-900/20 via-transparent to-blue-900/20 pointer-events-none" />
@@ -174,7 +164,6 @@ const FloatingElements = () => (
         ))}
     </div>
 );
-
 
 const WorkoutPlannerPage = (): JSX.Element => {
     const [days, setDays] = useState<number>(3);
@@ -204,11 +193,7 @@ const WorkoutPlannerPage = (): JSX.Element => {
             const response = await fetch(apiUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    WorkoutDays: days,
-                    Goal: goal,
-                    Level: level
-                }),
+                body: JSON.stringify({ WorkoutDays: days, Goal: goal, Level: level }),
             });
 
             if (!response.ok) {
@@ -236,16 +221,11 @@ const WorkoutPlannerPage = (): JSX.Element => {
             const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
             if (!backendUrl) { throw new Error("Backend URL is not configured."); }
 
-            // Find the current exercise object and workout context
             const currentExercises = selectedWorkout?.exercises || [];
-            // workoutPlanArray is not used in the current implementation of smartChange API request,
-            // but kept here for context if needed for future API changes.
-            // const workoutPlanArray = workoutPlan?.workoutDays || [];
-
-            // Find the user's skill level id (if available, else fallback to 2 = Intermediate)
-            let userSkillLevelId = 2;
+            let userSkillLevelId = 2; // Default to Intermediate
             const skillLevelMap: Record<string, number> = { Beginner: 1, Intermediate: 2, Advanced: 3 };
-            if (skillLevelMap[level]) userSkillLevelId = skillLevelMap[level]
+            if (skillLevelMap[level]) userSkillLevelId = skillLevelMap[level];
+            
             let exerciseToChangeName = exerciseName;
             if (!exerciseToChangeName) {
                 const found = currentExercises.find(e => e.exerciseId === exerciseId);
@@ -357,8 +337,8 @@ const WorkoutPlannerPage = (): JSX.Element => {
                         hover:shadow-blue-900/60
                         transition-all
                         duration-500
-                        min-h-[450px]  {/* Increased from 400px */}
-        md:min-h-[550px]{/* Added: Taller minimum height for medium screens and up */}
+                        min-h-[450px]
+                        md:min-h-[550px]
                     "
                 >
                     <CardContent>
@@ -455,6 +435,9 @@ const WorkoutPlannerPage = (): JSX.Element => {
                                             <h4 className="text-2xl font-libre-baskerville font-bold text-white mb-6 text-center">
                                                 {selectedWorkout.workoutName}
                                             </h4>
+                                            <p className="text-center text-xs text-gray-400 italic mb-4">
+                                                *Smart Change suggestions are powered by an algorithm that is still in development. They may not be perfect, so please use with caution.*
+                                            </p>
                                             <ul className="space-y-6">
                                                 {selectedWorkout.exercises.map((exercise) => (
                                                     <motion.li key={exercise.exerciseId} className="bg-gray-800/60 p-5 rounded-lg border border-gray-700 hover:border-purple-600 transition-all duration-300 transform hover:scale-[1.02] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: 0.05 }}>
@@ -475,7 +458,6 @@ const WorkoutPlannerPage = (): JSX.Element => {
                                                                 ))}
                                                             </div>
                                                         </div>
-                                                        {/* Smart Change Button */}
                                                         <button
                                                             onClick={() => handleSmartChange(exercise.exerciseId)}
                                                             disabled={smartChangeLoadingId === exercise.exerciseId}
