@@ -35,7 +35,7 @@ if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
-    app.MapOpenApi(); 
+    // app.MapOpenApi(); // Removed: Not available in .NET 6, use Swagger/Swashbuckle for OpenAPI
 }
 
 app.UseHttpsRedirection();

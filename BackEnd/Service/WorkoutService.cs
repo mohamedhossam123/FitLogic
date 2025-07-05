@@ -1,6 +1,6 @@
 
+using BackEnd.Models;
 using Microsoft.EntityFrameworkCore;
-using BackEnd.Models; 
 
 namespace MyApiProject.Services
 {
