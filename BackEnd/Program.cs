@@ -7,7 +7,6 @@ using MyApiProject.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.WebHost.UseUrls("https://localhost:5001");
 
 builder.Services.AddControllers();
 builder.Services.AddScoped<ICaloriesService, CaloriesService>();
@@ -22,7 +21,7 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowSpecificOrigin", builder =>
-        builder.WithOrigins("http://localhost:3000")
+        builder.WithOrigins("feisty-nature-production.up.railway.app")
                .AllowAnyHeader()
                .AllowAnyMethod()
                .AllowCredentials());
